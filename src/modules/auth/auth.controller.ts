@@ -14,17 +14,18 @@ import type {
   EmailVerification,
   ForgotPassword,
   Login,
+  RefreshToken,
   Register,
   ResetPassword,
 } from './auth.validation';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { JwtPayload } from '../../types';
 import type { ApiResponse } from '../../types';
-import type { User } from '../user/user.model';
 import { Throttle } from '@nestjs/throttler';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { AuthGuard } from './guard/auth.guard';
+import { Auth } from './auth.model';
 
 dayjs.extend(duration);
 
@@ -36,12 +37,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body(new ZodValidationPipe(AuthValidation.REGISTER)) data: Register,
-  ): Promise<ApiResponse<{ accessToken: string }>> {
-    const user = await this.service.register(data);
+  ): Promise<ApiResponse<Auth>> {
+    const authData = await this.service.register(data);
     return {
       message:
         'Pendaftaran akun berhasil. Kode OTP telah dikirim ke email Anda',
-      data: user,
+      data: authData,
       statusCode: HttpStatus.CREATED,
     };
   }
@@ -50,11 +51,39 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body(new ZodValidationPipe(AuthValidation.LOGIN)) data: Login,
-  ): Promise<ApiResponse<{ accessToken: string; isVerified: boolean }>> {
-    const user = await this.service.login(data);
+  ): Promise<ApiResponse<Auth>> {
+    const authData = await this.service.login(data);
     return {
-      message: `Berhasil masuk${user.isVerified ? '' : '. Akun belum terverifikasi'}`,
-      data: user,
+      message: `Berhasil masuk${authData.isVerified ? '' : '. Akun belum terverifikasi'}`,
+      data: authData,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Body(new ZodValidationPipe(AuthValidation.REFRESH_TOKEN))
+    data: RefreshToken,
+  ): Promise<ApiResponse<Auth>> {
+    const authData = await this.service.refreshToken(data);
+    return {
+      message: 'Sesi berhasil diperbarui',
+      data: authData,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
+  @Post('logout')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @Req() req: Request & { user: JwtPayload },
+  ): Promise<ApiResponse<boolean>> {
+    const result = await this.service.logout(req.user.sub);
+    return {
+      message: 'Berhasil keluar',
+      data: result,
       statusCode: HttpStatus.OK,
     };
   }
@@ -63,14 +92,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   async verifyEmail(
+    @Req() req: Request & { user: JwtPayload },
     @Body(new ZodValidationPipe(AuthValidation.EMAIL_VERIFICATION))
     data: EmailVerification,
-    @Req() req: Request & { user: JwtPayload },
-  ): Promise<ApiResponse<{ isVerified: User['isVerified'] }>> {
-    const user = await this.service.verifyEmail(req.user.sub, data.otpCode);
+  ): Promise<ApiResponse<{ isVerified: boolean }>> {
+    const result = await this.service.verifyEmail(req.user.sub, data.otpCode);
     return {
-      message: 'Verifikasi akun berhasil',
-      data: user,
+      message: 'Email berhasil diverifikasi',
+      data: result,
       statusCode: HttpStatus.OK,
     };
   }
@@ -87,10 +116,10 @@ export class AuthController {
   async resendVerification(
     @Req() req: Request & { user: JwtPayload },
   ): Promise<ApiResponse<{ email: string }>> {
-    const user = await this.service.resendVerification(req.user.sub);
+    const result = await this.service.resendVerification(req.user.sub);
     return {
-      message: `Kode OTP telah dikirim ke ${user.email}`,
-      data: user,
+      message: `Kode OTP telah dikirim ulang ke ${result.email}`,
+      data: result,
       statusCode: HttpStatus.OK,
     };
   }
@@ -107,10 +136,10 @@ export class AuthController {
     @Body(new ZodValidationPipe(AuthValidation.FORGOT_PASSWORD))
     data: ForgotPassword,
   ): Promise<ApiResponse<{ email: string; username: string }>> {
-    const user = await this.service.forgotPassword(data.identifier);
+    const result = await this.service.forgotPassword(data.identifier);
     return {
-      message: `Tautan atur ulang kata sandi telah dikirim ke ${user.email}`,
-      data: user,
+      message: `Tautan atur ulang kata sandi telah dikirim ke ${result.email}`,
+      data: result,
       statusCode: HttpStatus.OK,
     };
   }
@@ -120,11 +149,11 @@ export class AuthController {
   async resetPassword(
     @Body(new ZodValidationPipe(AuthValidation.RESET_PASSWORD))
     data: ResetPassword,
-  ): Promise<ApiResponse<{ accessToken: string }>> {
-    const user = await this.service.resetPassword(data);
+  ): Promise<ApiResponse<Auth>> {
+    const authData = await this.service.resetPassword(data);
     return {
       message: 'Kata sandi berhasil diatur ulang',
-      data: user,
+      data: authData,
       statusCode: HttpStatus.OK,
     };
   }

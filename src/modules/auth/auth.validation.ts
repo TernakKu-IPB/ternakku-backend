@@ -86,6 +86,10 @@ export class AuthValidation {
       message: 'Kata sandi tidak cocok',
       path: ['confirmPassword'],
     });
+
+  static readonly REFRESH_TOKEN = z.object({
+    refreshToken: z.string().nonempty('Tidak boleh kosong'),
+  });
 }
 
 export type Login = z.infer<typeof AuthValidation.LOGIN>;
@@ -95,3 +99,4 @@ export type EmailVerification = z.infer<
 >;
 export type ForgotPassword = z.infer<typeof AuthValidation.FORGOT_PASSWORD>;
 export type ResetPassword = z.infer<typeof AuthValidation.RESET_PASSWORD>;
+export type RefreshToken = z.infer<typeof AuthValidation.REFRESH_TOKEN>;

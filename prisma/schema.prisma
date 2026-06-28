@@ -25,6 +25,7 @@ model User {
     otpCode       String   @map("otp_code")
     otpExpiration DateTime @map("otp_expiration")
     isVerified    Boolean  @default(false) @map("is_verified")
+    refreshToken  String?  @map("refresh_token") @db.Text
 
     @@map("users")
 }

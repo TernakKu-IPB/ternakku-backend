@@ -13,7 +13,7 @@ export class ZodValidationPipe implements PipeTransform {
     } catch (error) {
       if (error instanceof ZodError) {
         throw new BadRequestException({
-          message: 'Bad request',
+          message: 'Kesalahan input',
           error: error.issues,
           statusCode: 400,
         });

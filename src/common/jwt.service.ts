@@ -21,14 +21,14 @@ export class JwtService {
     try {
       const data = await this.jwt.verifyAsync<JwtPayload>(token);
       if (data.type !== type) {
-        throw new UnauthorizedException('Invalid token type');
+        throw new UnauthorizedException('Tipe token tidak valid');
       }
       return data;
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        throw new UnauthorizedException('Token has expired');
+        throw new UnauthorizedException('Token sudah kedaluwarsa');
       } else if (error instanceof JsonWebTokenError) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('Token tidak valid');
       } else {
         throw error;
       }
