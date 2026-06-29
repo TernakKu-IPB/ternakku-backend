@@ -64,6 +64,23 @@ export class VaccineService {
     };
   }
 
+  async getDetail(userId: number, id: number): Promise<Vaccine> {
+    const farmId = await this.farm.getFarmId(userId);
+    const vaccine = await this.prisma.vaccine.findUnique({ where: { id } });
+
+    if (!vaccine) throw new NotFoundException('Vaksin tidak ditemukan');
+    if (vaccine.farmId !== farmId) {
+      throw new ForbiddenException(
+        'Anda hanya dapat melihat vaksin dalam peternakan Anda sendiri',
+      );
+    }
+
+    return {
+      ...vaccine,
+      ...formatCreateAndUpdateAt(vaccine.createdAt, vaccine.updatedAt),
+    };
+  }
+
   async checkCode(
     userId: number,
     code: string,

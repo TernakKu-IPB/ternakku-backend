@@ -49,6 +49,20 @@ export class VaccineController {
     };
   }
 
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  async getDetail(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponse<Vaccine>> {
+    const result = await this.service.getDetail(req.user.sub, id);
+    return {
+      message: 'Detail vaksin berhasil diambil',
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get('check-code')
   @HttpCode(HttpStatus.OK)
   async checkCode(
