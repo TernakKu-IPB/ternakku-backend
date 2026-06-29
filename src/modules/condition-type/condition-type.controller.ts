@@ -49,6 +49,20 @@ export class ConditionTypeController {
     };
   }
 
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  async getDetail(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponse<ConditionType>> {
+    const result = await this.service.getDetail(req.user.sub, id);
+    return {
+      message: 'Detail jenis kondisi berhasil diambil',
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get('check-code')
   @HttpCode(HttpStatus.OK)
   async checkCode(

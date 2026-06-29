@@ -68,6 +68,28 @@ export class ConditionTypeService {
     };
   }
 
+  async getDetail(userId: number, id: number): Promise<ConditionType> {
+    const farmId = await this.farm.getFarmId(userId);
+    const conditionType = await this.prisma.conditionType.findUnique({
+      where: { id },
+    });
+
+    if (!conditionType) throw new NotFoundException('Jenis kondisi tidak ditemukan');
+    if (conditionType.farmId !== farmId) {
+      throw new ForbiddenException(
+        'Anda hanya dapat melihat jenis kondisi dalam peternakan Anda sendiri',
+      );
+    }
+
+    return {
+      ...conditionType,
+      ...formatCreateAndUpdateAt(
+        conditionType.createdAt,
+        conditionType.updatedAt,
+      ),
+    };
+  }
+
   async checkCode(
     userId: number,
     code: string,
