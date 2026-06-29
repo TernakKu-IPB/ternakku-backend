@@ -18,6 +18,12 @@ enum Gender {
     female
 }
 
+enum LivestockStatus {
+    active
+    sold
+    dead
+}
+
 model User {
     id Int @id @default(autoincrement())
 
@@ -54,10 +60,11 @@ model Farm {
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
     animalTypes    AnimalType[]
     conditionTypes ConditionType[]
     vaccines       Vaccine[]
+    livestocks     Livestock[]
 
     @@map("farms")
 }
@@ -70,7 +77,8 @@ model AnimalType {
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 
-    farm      Farm?    @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    farm       Farm?       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    livestocks Livestock[]
 
     @@unique([code, farmId]) // Avoid duplication code at each farms
     @@map("animal_types")
@@ -84,7 +92,7 @@ model ConditionType {
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
 
-    farm      Farm?    @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    farm Farm? @relation(fields: [farmId], references: [id], onDelete: Cascade)
 
     @@unique([code, farmId])
     @@map("condition_types")
@@ -99,8 +107,36 @@ model Vaccine {
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
 
-    farm        Farm?    @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    farm Farm? @relation(fields: [farmId], references: [id], onDelete: Cascade)
 
     @@unique([code, farmId])
     @@map("vaccines")
+}
+
+model Livestock {
+    id           Int             @id @default(autoincrement())
+    farmId       Int             @map("farm_id")
+    tagId        String?         @map("tag_id")
+    name         String?
+    picture      String?
+    animalTypeId Int             @map("animal_type_id")
+    gender       Gender
+    birthDate    DateTime?       @map("birth_date")
+    status       LivestockStatus @default(active)
+
+    // Self-relation for family tree
+    fatherId Int? @map("father_id")
+    motherId Int? @map("mother_id")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    farm         Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    animalType   AnimalType  @relation(fields: [animalTypeId], references: [id])
+    father       Livestock?  @relation("Sire", fields: [fatherId], references: [id])
+    mother       Livestock?  @relation("Dam", fields: [motherId], references: [id])
+    childrenSire Livestock[] @relation("Sire")
+    childrenDam  Livestock[] @relation("Dam")
+
+    @@map("livestocks")
 }

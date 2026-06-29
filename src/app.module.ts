@@ -7,6 +7,7 @@ import { FarmModule } from './modules/farm/farm.module';
 import { AnimalTypeModule } from './modules/animal-type/animal-type.module';
 import { ConditionTypeModule } from './modules/condition-type/condition-type.module';
 import { VaccineModule } from './modules/vaccine/vaccine.module';
+import { LivestockModule } from './modules/livestock/livestock.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { VaccineModule } from './modules/vaccine/vaccine.module';
     AnimalTypeModule,
     ConditionTypeModule,
     VaccineModule,
+    LivestockModule,
   ],
   controllers: [AppController],
 })
