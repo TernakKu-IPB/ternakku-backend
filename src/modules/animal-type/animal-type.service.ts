@@ -67,6 +67,25 @@ export class AnimalTypeService {
     };
   }
 
+  async getDetail(userId: number, id: number): Promise<AnimalType> {
+    const farmId = await this.farm.getFarmId(userId);
+    const animalType = await this.prisma.animalType.findUnique({
+      where: { id },
+    });
+
+    if (!animalType) throw new NotFoundException('Jenis hewan tidak ditemukan');
+    if (animalType.farmId !== farmId) {
+      throw new ForbiddenException(
+        'Anda hanya dapat melihat jenis hewan dalam peternakan Anda sendiri',
+      );
+    }
+
+    return {
+      ...animalType,
+      ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
+    };
+  }
+
   async checkCode(
     userId: number,
     code: string,

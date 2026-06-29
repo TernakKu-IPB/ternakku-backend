@@ -49,6 +49,20 @@ export class AnimalTypeController {
     };
   }
 
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  async getDetail(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponse<AnimalType>> {
+    const result = await this.service.getDetail(req.user.sub, id);
+    return {
+      message: 'Detail jenis hewan berhasil diambil',
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get('check-code')
   @HttpCode(HttpStatus.OK)
   async checkCode(
