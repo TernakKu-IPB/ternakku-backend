@@ -11,6 +11,7 @@ import { PrismaService } from './prisma.service';
 import { JwtService } from './jwt.service';
 import { MailService } from './mail.service';
 import { ModelPaginationService } from './model-pagination.service';
+import { FarmService } from './farm.service';
 
 @Global()
 @Module({
@@ -62,7 +63,19 @@ import { ModelPaginationService } from './model-pagination.service';
       }),
     }),
   ],
-  providers: [PrismaService, JwtService, MailService, ModelPaginationService],
-  exports: [PrismaService, JwtService, MailService, ModelPaginationService],
+  providers: [
+    PrismaService,
+    JwtService,
+    MailService,
+    ModelPaginationService,
+    FarmService,
+  ],
+  exports: [
+    PrismaService,
+    JwtService,
+    MailService,
+    ModelPaginationService,
+    FarmService,
+  ],
 })
 export class CommonModule {}

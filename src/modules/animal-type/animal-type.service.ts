@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import type { AnimalType } from './animal-type.model';
@@ -16,32 +15,21 @@ import {
 import { Prisma } from '../../generated/prisma/client';
 import { ModelPaginationService } from '../../common/model-pagination.service';
 import { ApiPagination } from '../../types';
+import { FarmService } from '../../common/farm.service';
 
 @Injectable()
 export class AnimalTypeService {
   constructor(
     private prisma: PrismaService,
     private modelPagination: ModelPaginationService,
+    private farm: FarmService,
   ) {}
-
-  private async getFarmId(userId: number): Promise<number> {
-    const farm = await this.prisma.farm.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-    if (!farm) {
-      throw new UnprocessableEntityException(
-        'Anda harus membuat peternakan terlebih dahulu',
-      );
-    }
-    return farm.id;
-  }
 
   async getAll(
     userId: number,
     data: GetAllAnimalType,
   ): Promise<{ animalTypes: AnimalType[] } & ApiPagination> {
-    const farmId = await this.getFarmId(userId);
+    const farmId = await this.farm.getFarmId(userId);
     const animalTypes = await this.prisma.animalType.findMany({
       where: {
         farmId,
@@ -83,7 +71,7 @@ export class AnimalTypeService {
     userId: number,
     code: string,
   ): Promise<{ isAvailable: boolean }> {
-    const farmId = await this.getFarmId(userId);
+    const farmId = await this.farm.getFarmId(userId);
     const existing = await this.prisma.animalType.count({
       where: { farmId, code },
     });
@@ -92,7 +80,7 @@ export class AnimalTypeService {
   }
 
   async create(userId: number, data: CreateAnimalType): Promise<AnimalType> {
-    const farmId = await this.getFarmId(userId);
+    const farmId = await this.farm.getFarmId(userId);
     try {
       const animalType = await this.prisma.animalType.create({
         data: {
@@ -122,7 +110,7 @@ export class AnimalTypeService {
     id: number,
     data: UpdateAnimalType,
   ): Promise<AnimalType> {
-    const farmId = await this.getFarmId(userId);
+    const farmId = await this.farm.getFarmId(userId);
     const existing = await this.prisma.animalType.findUnique({ where: { id } });
 
     if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
@@ -156,7 +144,7 @@ export class AnimalTypeService {
   }
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
-    const farmId = await this.getFarmId(userId);
+    const farmId = await this.farm.getFarmId(userId);
     const existing = await this.prisma.animalType.findUnique({ where: { id } });
 
     if (!existing) throw new NotFoundException('Data tidak ditemukan');
