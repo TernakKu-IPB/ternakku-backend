@@ -10,6 +10,7 @@ import winston from 'winston';
 import { PrismaService } from './prisma.service';
 import { JwtService } from './jwt.service';
 import { MailService } from './mail.service';
+import { ModelPaginationService } from './model-pagination.service';
 
 @Global()
 @Module({
@@ -61,7 +62,7 @@ import { MailService } from './mail.service';
       }),
     }),
   ],
-  providers: [PrismaService, JwtService, MailService],
-  exports: [PrismaService, JwtService, MailService],
+  providers: [PrismaService, JwtService, MailService, ModelPaginationService],
+  exports: [PrismaService, JwtService, MailService, ModelPaginationService],
 })
 export class CommonModule {}

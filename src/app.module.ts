@@ -4,9 +4,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { UserModule } from './modules/user/user.module';
 import { FarmModule } from './modules/farm/farm.module';
+import { AnimalTypeModule } from './modules/animal-type/animal-type.module';
 
 @Module({
-  imports: [CommonModule, AuthModule, UserModule, FarmModule],
+  imports: [CommonModule, AuthModule, UserModule, FarmModule, AnimalTypeModule],
   controllers: [AppController],
 })
 export class AppModule {}
