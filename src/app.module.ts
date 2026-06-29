@@ -6,6 +6,7 @@ import { UserModule } from './modules/user/user.module';
 import { FarmModule } from './modules/farm/farm.module';
 import { AnimalTypeModule } from './modules/animal-type/animal-type.module';
 import { ConditionTypeModule } from './modules/condition-type/condition-type.module';
+import { VaccineModule } from './modules/vaccine/vaccine.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ConditionTypeModule } from './modules/condition-type/condition-type.mod
     FarmModule,
     AnimalTypeModule,
     ConditionTypeModule,
+    VaccineModule,
   ],
   controllers: [AppController],
 })
