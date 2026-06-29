@@ -1,39 +1,12 @@
 import { z } from 'zod';
-
-const identifier = z
-  .string()
-  .min(3, 'Indentifier must be at least 3 characters long')
-  .refine(
-    (value) =>
-      /^[a-zA-Z0-9_]+$/.test(value) ||
-      /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value),
-    {
-      message: 'Identifier must be a valid email or username',
-    },
-  );
-
-const password = z
-  .string()
-  .min(8, 'Minimal 8 karakter')
-  .max(64, 'Maksimal 64 karakter')
-  .regex(/[A-Z]/, 'Setidaknya berisi satu huruf kapital')
-  .regex(/[a-z]/, 'Setidaknya berisi satu huruf kecil')
-  .regex(/[0-9]/, 'Setidaknya berisi satu angka')
-  .regex(/[@$!%*?&]/, 'Setidaknya berisi satu spesial karakter (@$!%*?&)');
+import { IndexValidation } from '../../validator/index.validation';
 
 export class AuthValidation {
   static readonly REGISTER = z
     .object({
-      username: z
-        .string()
-        .min(3, 'Minimal 3 karakter')
-        .max(20, 'Maksimal 20 karakter')
-        .regex(
-          /^(?!_)(?!.*__)[a-zA-Z0-9_]+(?<!_)$/,
-          'Hanya boleh berisi huruf, angka, dan garis bawah, tetapi tidak boleh dimulai atau diakhiri dengan garis bawah',
-        ),
+      username: IndexValidation.USERNAME,
       email: z.email().nonempty('Tidak boleh kosong'),
-      password,
+      password: IndexValidation.PASSWORD,
       confirmPassword: z.string().min(8, 'Minimal 8 karakter'),
       fullName: z
         .string()
@@ -46,7 +19,7 @@ export class AuthValidation {
     });
 
   static readonly LOGIN = z.object({
-    identifier,
+    identifier: IndexValidation.IDENTIFIER,
     password: z
       .string()
       .nonempty('Tidak boleh kosong')
@@ -62,7 +35,7 @@ export class AuthValidation {
   });
 
   static readonly FORGOT_PASSWORD = z.object({
-    identifier,
+    identifier: IndexValidation.IDENTIFIER,
   });
 
   static readonly RESET_PASSWORD = z
@@ -74,9 +47,7 @@ export class AuthValidation {
           /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/,
           'Format token tidak valid',
         ),
-
-      newPassword: password,
-
+      newPassword: IndexValidation.PASSWORD,
       confirmPassword: z
         .string()
         .nonempty('Tidak boleh kosong')
@@ -88,7 +59,13 @@ export class AuthValidation {
     });
 
   static readonly REFRESH_TOKEN = z.object({
-    refreshToken: z.string().nonempty('Tidak boleh kosong'),
+    refreshToken: z
+      .string()
+      .nonempty('Tidak boleh kosong')
+      .regex(
+        /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/,
+        'Format token tidak valid',
+      ),
   });
 }
 
