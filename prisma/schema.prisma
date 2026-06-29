@@ -9,10 +9,17 @@ generator client {
     moduleFormat = "cjs"
 }
 
+datasource db {
+    provider = "mysql"
+}
+
+enum Gender {
+    male
+    female
+}
+
 model User {
-    id        Int      @id @default(autoincrement())
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+    id Int @id @default(autoincrement())
 
     username  String    @unique
     email     String    @unique
@@ -20,16 +27,34 @@ model User {
     fullName  String    @map("full_name")
     picture   String?
     birthDate DateTime? @map("birth_date")
-    gender    String?
+    gender    Gender?
 
     otpCode       String   @map("otp_code")
     otpExpiration DateTime @map("otp_expiration")
     isVerified    Boolean  @default(false) @map("is_verified")
     refreshToken  String?  @map("refresh_token") @db.Text
 
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    farm Farm?
+
     @@map("users")
 }
 
-datasource db {
-    provider = "mysql"
+model Farm {
+    id          Int      @id @default(autoincrement())
+    userId      Int      @unique @map("user_id")
+    name        String
+    address     String   @db.Text
+    latitude    Decimal? @db.Decimal(10, 8)
+    longitude   Decimal? @db.Decimal(11, 8)
+    description String?  @db.Text
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("farms")
 }
