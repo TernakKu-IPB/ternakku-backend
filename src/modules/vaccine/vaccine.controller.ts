@@ -34,6 +34,20 @@ import { Vaccine } from './vaccine.model';
 export class VaccineController {
   constructor(private readonly service: VaccineService) {}
 
+  @Get('templates')
+  @HttpCode(HttpStatus.OK)
+  async getAllTemplates(
+    @Query(new ZodValidationPipe(VaccineValidation.GET_ALL))
+    query: GetAllVaccine,
+  ): Promise<ApiResponse<{ vaccines: Vaccine[] } & ApiPagination>> {
+    const result = await this.service.getAllTemplates(query);
+    return {
+      message: 'Template vaksin berhasil diambil',
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAll(

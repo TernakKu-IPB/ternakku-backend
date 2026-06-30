@@ -112,7 +112,7 @@ export class VaccineService {
         err.code === 'P2002'
       ) {
         throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain.`,
+          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
         );
       }
       throw err;
@@ -153,7 +153,7 @@ export class VaccineService {
         err.code === 'P2002'
       ) {
         throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain.`,
+          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
         );
       }
       throw err;
@@ -171,6 +171,136 @@ export class VaccineService {
     if (existing.farmId !== farmId) {
       throw new ForbiddenException(
         'Anda hanya dapat menghapus vaksin dalam peternakan Anda sendiri',
+      );
+    }
+
+    const deleted = await this.prisma.vaccine.delete({
+      where: { id },
+      select: { id: true },
+    });
+    return deleted;
+  }
+
+  async getAllTemplates(
+    data: GetAllVaccine,
+  ): Promise<{ vaccines: Vaccine[] } & ApiPagination> {
+    const vaccines = await this.prisma.vaccine.findMany({
+      where: {
+        farmId: null,
+        ...(data.q && {
+          OR: [{ code: { contains: data.q } }, { name: { contains: data.q } }],
+        }),
+      },
+      orderBy: { name: 'asc' },
+      take: data.limit + 1,
+      skip: data.offset,
+    });
+
+    const endpoint = '/vaccines/templates';
+    const params = new URLSearchParams();
+    if (data.q) params.set('q', data.q);
+
+    const { hasNextPage, paging } = this.modelPagination.getServerPageLink(
+      data.offset,
+      data.limit,
+      vaccines.length,
+      endpoint,
+      params,
+    );
+
+    return {
+      vaccines: (hasNextPage ? vaccines.slice(0, -1) : vaccines).map(
+        (vaccine) => ({
+          ...vaccine,
+          ...formatCreateAndUpdateAt(vaccine.createdAt, vaccine.updatedAt),
+        }),
+      ),
+      paging,
+    };
+  }
+
+  async getTemplateDetail(id: number): Promise<Vaccine> {
+    const vaccine = await this.prisma.vaccine.findUnique({
+      where: { id },
+    });
+
+    if (!vaccine) throw new NotFoundException('Vaksin tidak ditemukan');
+    if (vaccine.farmId !== null) {
+      throw new ForbiddenException('Anda hanya dapat melihat template sistem');
+    }
+
+    return {
+      ...vaccine,
+      ...formatCreateAndUpdateAt(vaccine.createdAt, vaccine.updatedAt),
+    };
+  }
+
+  async createTemplate(data: CreateVaccine): Promise<Vaccine> {
+    const isCodeAlreadyUse = await this.prisma.vaccine.count({
+      where: { code: data.code, farmId: null },
+    });
+    if (isCodeAlreadyUse) {
+      throw new ConflictException(
+        `Kode ${data.code} sudah digunakan pada template sistem`,
+      );
+    }
+
+    const vaccine = await this.prisma.vaccine.create({
+      data: {
+        ...data,
+        farmId: null,
+      },
+    });
+
+    return {
+      ...vaccine,
+      ...formatCreateAndUpdateAt(vaccine.createdAt, vaccine.updatedAt),
+    };
+  }
+
+  async updateTemplate(id: number, data: UpdateVaccine): Promise<Vaccine> {
+    const existing = await this.prisma.vaccine.findUnique({
+      where: { id },
+      select: { farmId: true, code: true },
+    });
+
+    if (!existing) throw new NotFoundException('Vaksin tidak ditemukan');
+    if (existing.farmId !== null) {
+      throw new ForbiddenException('Anda hanya dapat mengubah template sistem');
+    }
+
+    if (data.code && data.code !== existing.code) {
+      const isCodeAlreadyUse = await this.prisma.vaccine.count({
+        where: { code: data.code, farmId: null },
+      });
+      if (isCodeAlreadyUse) {
+        throw new ConflictException(
+          `Kode ${data.code} sudah digunakan pada template sistem`,
+        );
+      }
+    }
+
+    const updated = await this.prisma.vaccine.update({
+      where: { id },
+      data,
+    });
+
+    return {
+      ...updated,
+      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+    };
+  }
+
+  async deleteTemplate(id: number): Promise<{ id: number }> {
+    const existing = await this.prisma.vaccine.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
+
+    if (!existing) throw new NotFoundException('Vaksin tidak ditemukan');
+    if (existing.farmId !== null) {
+      throw new ForbiddenException(
+        'Anda hanya dapat menghapus template sistem',
       );
     }
 
