@@ -39,15 +39,19 @@ export abstract class BaseGuard implements CanActivate {
       const data = await this.jwt.verifyToken(token, 'access_token');
       request.user = data;
 
-      const shouldVerified = this.reflector.get(
-        VerifiedAccount,
+      const shouldVerified = this.reflector.getAllAndOverride(VerifiedAccount, [
         context.getHandler(),
-      );
+        context.getClass(),
+      ]);
       if (shouldVerified) {
         await this.checkAccountVerification(request.user);
       }
 
-      const role = this.reflector.get(Role, context.getHandler());
+      const role = this.reflector.getAllAndOverride(Role, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      console.log(role);
       if (role) {
         await this.checkAuthorization(role, request.user);
       }
