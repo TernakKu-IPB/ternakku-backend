@@ -34,6 +34,20 @@ import { ConditionType } from './condition-type.model';
 export class ConditionTypeController {
   constructor(private readonly service: ConditionTypeService) {}
 
+  @Get('templates')
+  @HttpCode(HttpStatus.OK)
+  async getAllTemplates(
+    @Query(new ZodValidationPipe(ConditionTypeValidation.GET_ALL))
+    query: GetAllConditionType,
+  ): Promise<ApiResponse<{ conditionTypes: ConditionType[] } & ApiPagination>> {
+    const result = await this.service.getAllTemplates(query);
+    return {
+      message: 'Template jenis kondisi berhasil diambil',
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAll(

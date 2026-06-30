@@ -128,7 +128,7 @@ export class ConditionTypeService {
         err.code === 'P2002'
       ) {
         throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain.`,
+          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
         );
       }
       throw err;
@@ -169,7 +169,7 @@ export class ConditionTypeService {
         err.code === 'P2002'
       ) {
         throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain.`,
+          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
         );
       }
       throw err;
@@ -187,6 +187,150 @@ export class ConditionTypeService {
     if (existing.farmId !== farmId) {
       throw new ForbiddenException(
         'Anda hanya dapat menghapus jenis kondisi dalam peternakan Anda sendiri',
+      );
+    }
+
+    const deleted = await this.prisma.conditionType.delete({
+      where: { id },
+      select: { id: true },
+    });
+    return deleted;
+  }
+
+  async getAllTemplates(
+    data: GetAllConditionType,
+  ): Promise<{ conditionTypes: ConditionType[] } & ApiPagination> {
+    const conditionTypes = await this.prisma.conditionType.findMany({
+      where: {
+        farmId: null,
+        ...(data.q && {
+          OR: [{ code: { contains: data.q } }, { label: { contains: data.q } }],
+        }),
+      },
+      orderBy: { label: 'asc' },
+      take: data.limit + 1,
+      skip: data.offset,
+    });
+
+    const endpoint = '/condition-types/templates';
+    const params = new URLSearchParams();
+    if (data.q) params.set('q', data.q);
+
+    const { hasNextPage, paging } = this.modelPagination.getServerPageLink(
+      data.offset,
+      data.limit,
+      conditionTypes.length,
+      endpoint,
+      params,
+    );
+
+    return {
+      conditionTypes: (hasNextPage
+        ? conditionTypes.slice(0, -1)
+        : conditionTypes
+      ).map((conditionType) => ({
+        ...conditionType,
+        ...formatCreateAndUpdateAt(
+          conditionType.createdAt,
+          conditionType.updatedAt,
+        ),
+      })),
+      paging,
+    };
+  }
+
+  async getTemplateDetail(id: number): Promise<ConditionType> {
+    const conditionType = await this.prisma.conditionType.findUnique({
+      where: { id },
+    });
+
+    if (!conditionType)
+      throw new NotFoundException('Jenis kondisi tidak ditemukan');
+    if (conditionType.farmId !== null) {
+      throw new ForbiddenException('Anda hanya dapat melihat template sistem');
+    }
+
+    return {
+      ...conditionType,
+      ...formatCreateAndUpdateAt(
+        conditionType.createdAt,
+        conditionType.updatedAt,
+      ),
+    };
+  }
+
+  async createTemplate(data: CreateConditionType): Promise<ConditionType> {
+    const isCodeAlreadyUse = await this.prisma.conditionType.count({
+      where: { code: data.code, farmId: null },
+    });
+    if (isCodeAlreadyUse) {
+      throw new ConflictException(
+        `Kode ${data.code} sudah digunakan pada template sistem`,
+      );
+    }
+
+    const conditionType = await this.prisma.conditionType.create({
+      data: {
+        ...data,
+        farmId: null,
+      },
+    });
+
+    return {
+      ...conditionType,
+      ...formatCreateAndUpdateAt(
+        conditionType.createdAt,
+        conditionType.updatedAt,
+      ),
+    };
+  }
+
+  async updateTemplate(
+    id: number,
+    data: UpdateConditionType,
+  ): Promise<ConditionType> {
+    const existing = await this.prisma.conditionType.findUnique({
+      where: { id },
+      select: { farmId: true, code: true },
+    });
+
+    if (!existing) throw new NotFoundException('Jenis kondisi tidak ditemukan');
+    if (existing.farmId !== null) {
+      throw new ForbiddenException('Anda hanya dapat mengubah template sistem');
+    }
+
+    if (data.code && data.code !== existing.code) {
+      const isCodeAlreadyUse = await this.prisma.conditionType.count({
+        where: { code: data.code, farmId: null },
+      });
+      if (isCodeAlreadyUse) {
+        throw new ConflictException(
+          `Kode ${data.code} sudah digunakan pada template sistem`,
+        );
+      }
+    }
+
+    const updated = await this.prisma.conditionType.update({
+      where: { id },
+      data,
+    });
+
+    return {
+      ...updated,
+      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+    };
+  }
+
+  async deleteTemplate(id: number): Promise<{ id: number }> {
+    const existing = await this.prisma.conditionType.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
+
+    if (!existing) throw new NotFoundException('Jenis kondisi tidak ditemukan');
+    if (existing.farmId !== null) {
+      throw new ForbiddenException(
+        'Anda hanya dapat menghapus template sistem',
       );
     }
 
