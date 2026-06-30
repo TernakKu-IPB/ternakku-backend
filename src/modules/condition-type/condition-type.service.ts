@@ -74,7 +74,8 @@ export class ConditionTypeService {
       where: { id },
     });
 
-    if (!conditionType) throw new NotFoundException('Jenis kondisi tidak ditemukan');
+    if (!conditionType)
+      throw new NotFoundException('Jenis kondisi tidak ditemukan');
     if (conditionType.farmId !== farmId) {
       throw new ForbiddenException(
         'Anda hanya dapat melihat jenis kondisi dalam peternakan Anda sendiri',
@@ -142,6 +143,7 @@ export class ConditionTypeService {
     const farmId = await this.farm.getFarmId(userId);
     const existing = await this.prisma.conditionType.findUnique({
       where: { id },
+      select: { farmId: true },
     });
 
     if (!existing) throw new NotFoundException('Jenis kondisi tidak ditemukan');
@@ -178,6 +180,7 @@ export class ConditionTypeService {
     const farmId = await this.farm.getFarmId(userId);
     const existing = await this.prisma.conditionType.findUnique({
       where: { id },
+      select: { farmId: true },
     });
 
     if (!existing) throw new NotFoundException('Data tidak ditemukan');
