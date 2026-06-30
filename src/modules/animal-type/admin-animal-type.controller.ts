@@ -52,7 +52,7 @@ export class AdminAnimalTypeController {
   ): Promise<ApiResponse<AnimalType>> {
     const result = await this.service.createTemplate(data);
     return {
-      message: 'Template jenis hewan sistem berhasil ditambahkan',
+      message: 'Template jenis hewan berhasil ditambahkan',
       data: result,
       statusCode: HttpStatus.CREATED,
     };
@@ -67,7 +67,7 @@ export class AdminAnimalTypeController {
   ): Promise<ApiResponse<AnimalType>> {
     const result = await this.service.updateTemplate(id, data);
     return {
-      message: 'Template jenis hewan sistem berhasil diperbarui',
+      message: 'Template jenis hewan berhasil diperbarui',
       data: result,
       statusCode: HttpStatus.OK,
     };
@@ -80,7 +80,7 @@ export class AdminAnimalTypeController {
   ): Promise<ApiResponse<{ id: number }>> {
     const result = await this.service.deleteTemplate(id);
     return {
-      message: 'Template jenis hewan sistem berhasil dihapus',
+      message: 'Template jenis hewan berhasil dihapus',
       data: result,
       statusCode: HttpStatus.OK,
     };

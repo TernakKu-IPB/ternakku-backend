@@ -117,7 +117,7 @@ export class AnimalTypeService {
         err.code === 'P2002'
       ) {
         throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain.`,
+          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
         );
       }
       throw err;
@@ -158,7 +158,7 @@ export class AnimalTypeService {
         err.code === 'P2002'
       ) {
         throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain.`,
+          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
         );
       }
       throw err;
@@ -311,7 +311,7 @@ export class AnimalTypeService {
     if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
     if (existing.farmId !== null) {
       throw new ForbiddenException(
-        'Anda hanya dapat menghapus template sistem.',
+        'Anda hanya dapat menghapus template sistem',
       );
     }
 
