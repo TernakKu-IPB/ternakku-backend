@@ -130,7 +130,10 @@ export class AnimalTypeService {
     data: UpdateAnimalType,
   ): Promise<AnimalType> {
     const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.animalType.findUnique({ where: { id } });
+    const existing = await this.prisma.animalType.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
 
     if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
     if (existing.farmId !== farmId) {
@@ -164,7 +167,10 @@ export class AnimalTypeService {
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
     const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.animalType.findUnique({ where: { id } });
+    const existing = await this.prisma.animalType.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
 
     if (!existing) throw new NotFoundException('Data tidak ditemukan');
     if (existing.farmId !== farmId) {
