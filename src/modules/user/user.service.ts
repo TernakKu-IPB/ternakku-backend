@@ -5,6 +5,7 @@ import { User } from './user.model';
 import { formatCreateAndUpdateAt } from '../../utils/date-formatter';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { Prisma } from '../../generated/prisma/client';
 
 dayjs.extend(utc);
 
@@ -40,34 +41,47 @@ export class UserService {
   }
 
   async updateProfile(userId: number, data: UpdateUserProfile): Promise<User> {
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...data,
-        birthDate: data.birthDate
-          ? dayjs.utc(data.birthDate).toISOString()
-          : data.birthDate,
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        fullName: true,
-        picture: true,
-        birthDate: true,
-        gender: true,
-        isVerified: true,
-        updatedAt: true,
-        createdAt: true,
-      },
-    });
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...data,
+          birthDate: data.birthDate
+            ? dayjs.utc(data.birthDate).toISOString()
+            : data.birthDate,
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          fullName: true,
+          picture: true,
+          birthDate: true,
+          gender: true,
+          isVerified: true,
+          updatedAt: true,
+          createdAt: true,
+        },
+      });
 
-    return {
-      ...updatedUser,
-      birthDate: updatedUser.birthDate
-        ? dayjs.utc(updatedUser.birthDate).format('YYYY-MM-DD')
-        : null,
-      ...formatCreateAndUpdateAt(updatedUser.createdAt, updatedUser.updatedAt),
-    };
+      return {
+        ...updatedUser,
+        birthDate: updatedUser.birthDate
+          ? dayjs.utc(updatedUser.birthDate).format('YYYY-MM-DD')
+          : null,
+        ...formatCreateAndUpdateAt(
+          updatedUser.createdAt,
+          updatedUser.updatedAt,
+        ),
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Pengguna tidak ditemukan');
+      }
+      throw error;
+    }
   }
 }
