@@ -185,4 +185,140 @@ export class AnimalTypeService {
     });
     return deleted;
   }
+
+  async getAllTemplates(
+    data: GetAllAnimalType,
+  ): Promise<{ animalTypes: AnimalType[] } & ApiPagination> {
+    const animalTypes = await this.prisma.animalType.findMany({
+      where: {
+        farmId: null,
+        ...(data.q && {
+          OR: [{ code: { contains: data.q } }, { label: { contains: data.q } }],
+        }),
+      },
+      orderBy: { label: 'asc' },
+      take: data.limit + 1,
+      skip: data.offset,
+    });
+
+    const endpoint = '/animal-types/templates';
+    const params = new URLSearchParams();
+    if (data.q) params.set('q', data.q);
+
+    const { hasNextPage, paging } = this.modelPagination.getServerPageLink(
+      data.offset,
+      data.limit,
+      animalTypes.length,
+      endpoint,
+      params,
+    );
+
+    return {
+      animalTypes: (hasNextPage ? animalTypes.slice(0, -1) : animalTypes).map(
+        (animalType) => ({
+          ...animalType,
+          ...formatCreateAndUpdateAt(
+            animalType.createdAt,
+            animalType.updatedAt,
+          ),
+        }),
+      ),
+      paging,
+    };
+  }
+
+  async getTemplateDetail(id: number): Promise<AnimalType> {
+    const animalType = await this.prisma.animalType.findUnique({
+      where: { id },
+    });
+
+    if (!animalType) throw new NotFoundException('Jenis hewan tidak ditemukan');
+    if (animalType.farmId !== null) {
+      throw new ForbiddenException('Anda hanya dapat melihat template sistem');
+    }
+
+    return {
+      ...animalType,
+      ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
+    };
+  }
+
+  async createTemplate(data: CreateAnimalType): Promise<AnimalType> {
+    const isCodeAlreadyUse = await this.prisma.animalType.count({
+      where: { code: data.code, farmId: null },
+    });
+    if (isCodeAlreadyUse) {
+      throw new ConflictException(
+        `Kode ${data.code} sudah digunakan pada template sistem`,
+      );
+    }
+
+    const animalType = await this.prisma.animalType.create({
+      data: {
+        ...data,
+        farmId: null,
+      },
+    });
+
+    return {
+      ...animalType,
+      ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
+    };
+  }
+
+  async updateTemplate(
+    id: number,
+    data: UpdateAnimalType,
+  ): Promise<AnimalType> {
+    const existing = await this.prisma.animalType.findUnique({
+      where: { id },
+      select: { farmId: true, code: true },
+    });
+
+    if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
+    if (existing.farmId !== null) {
+      throw new ForbiddenException('Anda hanya dapat mengubah template sistem');
+    }
+
+    if (data.code && data.code !== existing.code) {
+      const isCodeAlreadyUse = await this.prisma.animalType.count({
+        where: { code: data.code, farmId: null },
+      });
+      if (isCodeAlreadyUse) {
+        throw new ConflictException(
+          `Kode ${data.code} sudah digunakan pada template sistem`,
+        );
+      }
+    }
+
+    const updated = await this.prisma.animalType.update({
+      where: { id },
+      data,
+    });
+
+    return {
+      ...updated,
+      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+    };
+  }
+
+  async deleteTemplate(id: number): Promise<{ id: number }> {
+    const existing = await this.prisma.animalType.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
+
+    if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
+    if (existing.farmId !== null) {
+      throw new ForbiddenException(
+        'Anda hanya dapat menghapus template sistem.',
+      );
+    }
+
+    const deleted = await this.prisma.animalType.delete({
+      where: { id },
+      select: { id: true },
+    });
+    return deleted;
+  }
 }

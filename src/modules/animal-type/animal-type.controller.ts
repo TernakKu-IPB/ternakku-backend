@@ -34,6 +34,35 @@ import { AnimalType } from './animal-type.model';
 export class AnimalTypeController {
   constructor(private readonly service: AnimalTypeService) {}
 
+  @Get('templates')
+  @HttpCode(HttpStatus.OK)
+  async getAllTemplates(
+    @Query(new ZodValidationPipe(AnimalTypeValidation.GET_ALL))
+    query: GetAllAnimalType,
+  ): Promise<ApiResponse<{ animalTypes: AnimalType[] } & ApiPagination>> {
+    const result = await this.service.getAllTemplates(query);
+    return {
+      message: 'Template jenis hewan berhasil diambil',
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
+  @Get('check-code')
+  @HttpCode(HttpStatus.OK)
+  async checkCode(
+    @Req() req: Request & { user: JwtPayload },
+    @Query(new ZodValidationPipe(AnimalTypeValidation.CHECK_CODE))
+    query: CheckCodeAnimalType,
+  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
+    const result = await this.service.checkCode(req.user.sub, query.code);
+    return {
+      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAll(
@@ -58,21 +87,6 @@ export class AnimalTypeController {
     const result = await this.service.getDetail(req.user.sub, id);
     return {
       message: 'Detail jenis hewan berhasil diambil',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
-  }
-
-  @Get('check-code')
-  @HttpCode(HttpStatus.OK)
-  async checkCode(
-    @Req() req: Request & { user: JwtPayload },
-    @Query(new ZodValidationPipe(AnimalTypeValidation.CHECK_CODE))
-    query: CheckCodeAnimalType,
-  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
-    const result = await this.service.checkCode(req.user.sub, query.code);
-    return {
-      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
       data: result,
       statusCode: HttpStatus.OK,
     };
