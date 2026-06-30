@@ -9,6 +9,7 @@ import { ConditionTypeModule } from './modules/condition-type/condition-type.mod
 import { VaccineModule } from './modules/vaccine/vaccine.module';
 import { LivestockModule } from './modules/livestock/livestock.module';
 import { ConditionHistoryModule } from './modules/condition-history/condition-history.module';
+import { VaccinationHistoryModule } from './modules/vaccination-history/vaccination-history.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ConditionHistoryModule } from './modules/condition-history/condition-hi
     VaccineModule,
     LivestockModule,
     ConditionHistoryModule,
+    VaccinationHistoryModule,
   ],
   controllers: [AppController],
 })

@@ -15,6 +15,7 @@ import { FarmService } from './farm.service';
 import { AnimalTypeService } from './animal-type.service';
 import { ConditionTypeService } from './condition-type.service';
 import { LivestockService } from './livestock.service';
+import { VaccineService } from './vaccine.service';
 
 @Global()
 @Module({
@@ -75,6 +76,7 @@ import { LivestockService } from './livestock.service';
     AnimalTypeService,
     ConditionTypeService,
     LivestockService,
+    VaccineService,
   ],
   exports: [
     PrismaService,
@@ -85,6 +87,7 @@ import { LivestockService } from './livestock.service';
     AnimalTypeService,
     ConditionTypeService,
     LivestockService,
+    VaccineService,
   ],
 })
 export class CommonModule {}
