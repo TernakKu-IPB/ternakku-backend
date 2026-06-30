@@ -93,6 +93,7 @@ model ConditionType {
     updatedAt DateTime @updatedAt @map("updated_at")
 
     farm Farm? @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    conditionHistories ConditionHistory[]
 
     @@unique([code, farmId])
     @@map("condition_types")
@@ -108,6 +109,7 @@ model Vaccine {
     updatedAt   DateTime @updatedAt @map("updated_at")
 
     farm Farm? @relation(fields: [farmId], references: [id], onDelete: Cascade)
+    vaccinationHistories VaccinationHistory[]
 
     @@unique([code, farmId])
     @@map("vaccines")
@@ -137,6 +139,42 @@ model Livestock {
     mother       Livestock?  @relation("Dam", fields: [motherId], references: [id])
     childrenSire Livestock[] @relation("Sire")
     childrenDam  Livestock[] @relation("Dam")
+    conditionHistories    ConditionHistory[]
+    vaccinationHistories  VaccinationHistory[]
 
     @@map("livestocks")
+}
+
+model ConditionHistory {
+    id              Int      @id @default(autoincrement())
+    livestockId     Int      @map("livestock_id")
+    conditionTypeId Int      @map("condition_type_id")
+    recordDate      DateTime @map("record_date")
+    notes           String?  @db.Text
+
+    createdAt       DateTime @default(now()) @map("created_at")
+    updatedAt       DateTime @updatedAt @map("updated_at")
+
+    livestock       Livestock     @relation(fields: [livestockId], references: [id], onDelete: Cascade)
+    conditionType   ConditionType @relation(fields: [conditionTypeId], references: [id])
+
+    @@map("condition_histories")
+}
+
+model VaccinationHistory {
+    id               Int      @id @default(autoincrement())
+    livestockId      Int      @map("livestock_id")
+    vaccineId        Int      @map("vaccine_id")
+    isVaccinated     Boolean  @default(false) @map("is_vaccinated")
+    vaccinationDate  DateTime @map("vaccination_date")
+    batchNumber      String?  @map("batch_number")
+    notes            String?  @db.Text
+
+    createdAt        DateTime @default(now()) @map("created_at")
+    updatedAt        DateTime @updatedAt @map("updated_at")
+
+    livestock        Livestock @relation(fields: [livestockId], references: [id], onDelete: Cascade)
+    vaccine          Vaccine   @relation(fields: [vaccineId], references: [id])
+
+    @@map("vaccination_histories")
 }

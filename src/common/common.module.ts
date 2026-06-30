@@ -14,6 +14,7 @@ import { ModelPaginationService } from './model-pagination.service';
 import { FarmService } from './farm.service';
 import { AnimalTypeService } from './animal-type.service';
 import { ConditionTypeService } from './condition-type.service';
+import { LivestockService } from './livestock.service';
 
 @Global()
 @Module({
@@ -73,6 +74,7 @@ import { ConditionTypeService } from './condition-type.service';
     FarmService,
     AnimalTypeService,
     ConditionTypeService,
+    LivestockService,
   ],
   exports: [
     PrismaService,
@@ -82,6 +84,7 @@ import { ConditionTypeService } from './condition-type.service';
     FarmService,
     AnimalTypeService,
     ConditionTypeService,
+    LivestockService,
   ],
 })
 export class CommonModule {}
