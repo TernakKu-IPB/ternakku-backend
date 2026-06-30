@@ -11,6 +11,8 @@ import { JwtPayload } from '../../../types';
 import { Reflector } from '@nestjs/core';
 import { VerifiedAccount } from '../decorator/verified-account.decarator';
 import { PrismaService } from '../../../common/prisma.service';
+import { Role } from '../decorator/role.decarator';
+import { Role as RolePrisma } from '../../../generated/prisma/enums';
 
 @Injectable()
 export abstract class BaseGuard implements CanActivate {
@@ -45,6 +47,11 @@ export abstract class BaseGuard implements CanActivate {
         await this.checkAccountVerification(request.user);
       }
 
+      const role = this.reflector.get(Role, context.getHandler());
+      if (role) {
+        await this.checkAuthorization(role, request.user);
+      }
+
       return true;
     } catch (error) {
       if (this.isAuthOptional) return true;
@@ -65,6 +72,21 @@ export abstract class BaseGuard implements CanActivate {
 
     if (!userFromDb?.isVerified) {
       throw new ForbiddenException('Akun Anda belum terverifikasi.');
+    }
+  }
+
+  private async checkAuthorization(role: RolePrisma, user: JwtPayload) {
+    const userFromDB = await this.prisma.user.findUnique({
+      where: {
+        id: user.sub,
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!userFromDB || role !== userFromDB.role) {
+      throw new ForbiddenException('Tidak dapat diakses');
     }
   }
 }
