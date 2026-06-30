@@ -163,7 +163,16 @@ export class LivestockService {
     data: UpdateLivestock,
   ): Promise<Livestock> {
     const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.livestock.findUnique({ where: { id } });
+    const existing = await this.prisma.livestock.findUnique({
+      where: { id },
+      select: {
+        farmId: true,
+        animalTypeId: true,
+        fatherId: true,
+        motherId: true,
+        gender: true,
+      },
+    });
 
     if (!existing) throw new NotFoundException('Data ternak tidak ditemukan');
     if (existing.farmId !== farmId) {
@@ -172,7 +181,7 @@ export class LivestockService {
       );
     }
 
-    if (data.animalTypeId) {
+    if (data.animalTypeId && data.animalTypeId !== existing.animalTypeId) {
       await this.animalType.checkAvailability(data.animalTypeId, farmId);
     }
 
@@ -231,7 +240,10 @@ export class LivestockService {
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
     const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.livestock.findUnique({ where: { id } });
+    const existing = await this.prisma.livestock.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
 
     if (!existing) throw new NotFoundException('Data ternak tidak ditemukan');
     if (existing.farmId !== farmId) {
