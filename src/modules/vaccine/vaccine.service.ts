@@ -125,7 +125,10 @@ export class VaccineService {
     data: UpdateVaccine,
   ): Promise<Vaccine> {
     const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.vaccine.findUnique({ where: { id } });
+    const existing = await this.prisma.vaccine.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
 
     if (!existing) throw new NotFoundException('Vaksin tidak ditemukan');
     if (existing.farmId !== farmId) {
@@ -159,7 +162,10 @@ export class VaccineService {
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
     const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.vaccine.findUnique({ where: { id } });
+    const existing = await this.prisma.vaccine.findUnique({
+      where: { id },
+      select: { farmId: true },
+    });
 
     if (!existing) throw new NotFoundException('Data tidak ditemukan');
     if (existing.farmId !== farmId) {
