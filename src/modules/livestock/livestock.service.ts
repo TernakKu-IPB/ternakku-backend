@@ -70,16 +70,27 @@ export class LivestockService {
   async getAll(
     userId: number,
     data: GetAllLivestock,
-  ): Promise<{ livestocks: Livestock[] } & ApiPagination> {
+  ): Promise<
+    {
+      livestocks: (Livestock & { animalType: { id: number; label: string } })[];
+    } & ApiPagination
+  > {
     const farmId = await this.farm.getFarmId(userId);
 
     const livestocks = await this.prisma.livestock.findMany({
       where: {
         farmId,
         ...(data.status && { status: data.status }),
+        ...(data.gender && { gender: data.gender }),
+        ...(data.animalTypeId && { animalTypeId: data.animalTypeId }),
         ...(data.q && {
           OR: [{ tagId: { contains: data.q } }, { name: { contains: data.q } }],
         }),
+      },
+      include: {
+        animalType: {
+          select: { id: true, label: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: data.limit + 1,

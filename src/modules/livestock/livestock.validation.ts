@@ -70,6 +70,20 @@ export class LivestockValidation {
       .transform((value) => (value === '' ? null : value))
       .nullable()
       .optional(),
+    gender: z
+      .enum(Gender, {
+        error: `Harus salah satu dari: ${this.genderValues.join(', ')}`,
+      })
+      .or(z.literal(''))
+      .transform((value) => (value === '' ? null : value))
+      .nullable()
+      .optional(),
+    animalTypeId: z.coerce
+      .number()
+      .int()
+      .positive('Pilihan tidak valid')
+      .nullable()
+      .optional(),
   });
 }
 

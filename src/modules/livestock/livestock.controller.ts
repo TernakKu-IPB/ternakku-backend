@@ -39,7 +39,15 @@ export class LivestockController {
     @Req() req: Request & { user: JwtPayload },
     @Query(new ZodValidationPipe(LivestockValidation.GET_ALL))
     query: GetAllLivestock,
-  ): Promise<ApiResponse<{ livestocks: Livestock[] } & ApiPagination>> {
+  ): Promise<
+    ApiResponse<
+      {
+        livestocks: (Livestock & {
+          animalType: { id: number; label: string };
+        })[];
+      } & ApiPagination
+    >
+  > {
     const result = await this.service.getAll(req.user.sub, query);
     return {
       message: 'Data ternak berhasil diambil',
