@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ConditionTypeService } from './condition-type.service';
@@ -18,6 +19,7 @@ import { Role } from '../auth/decorator/role.decarator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { ConditionTypeValidation } from './condition-type.validation';
 import type {
+  CheckCodeConditionType,
   CreateConditionType,
   UpdateConditionType,
 } from './condition-type.validation';
@@ -30,6 +32,20 @@ import { ApiResponse } from '../../types';
 @Role('admin')
 export class AdminConditionTypeController {
   constructor(private readonly service: ConditionTypeService) {}
+
+  @Get('check-code')
+  @HttpCode(HttpStatus.OK)
+  async checkCode(
+    @Query(new ZodValidationPipe(ConditionTypeValidation.CHECK_CODE))
+    query: CheckCodeConditionType,
+  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
+    const result = await this.service.checkTemplateCode(query.code);
+    return {
+      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)

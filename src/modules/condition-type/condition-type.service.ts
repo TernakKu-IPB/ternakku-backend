@@ -259,6 +259,14 @@ export class ConditionTypeService {
     };
   }
 
+  async checkTemplateCode(code: string): Promise<{ isAvailable: boolean }> {
+    const existing = await this.prisma.conditionType.count({
+      where: { farmId: null, code },
+    });
+
+    return { isAvailable: existing === 0 };
+  }
+
   async createTemplate(data: CreateConditionType): Promise<ConditionType> {
     const isCodeAlreadyUse = await this.prisma.conditionType.count({
       where: { code: data.code, farmId: null },

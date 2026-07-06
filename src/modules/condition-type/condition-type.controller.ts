@@ -48,6 +48,21 @@ export class ConditionTypeController {
     };
   }
 
+  @Get('check-code')
+  @HttpCode(HttpStatus.OK)
+  async checkCode(
+    @Req() req: Request & { user: JwtPayload },
+    @Query(new ZodValidationPipe(ConditionTypeValidation.CHECK_CODE))
+    query: CheckCodeConditionType,
+  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
+    const result = await this.service.checkCode(req.user.sub, query.code);
+    return {
+      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAll(
@@ -72,21 +87,6 @@ export class ConditionTypeController {
     const result = await this.service.getDetail(req.user.sub, id);
     return {
       message: 'Detail jenis kondisi berhasil diambil',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
-  }
-
-  @Get('check-code')
-  @HttpCode(HttpStatus.OK)
-  async checkCode(
-    @Req() req: Request & { user: JwtPayload },
-    @Query(new ZodValidationPipe(ConditionTypeValidation.CHECK_CODE))
-    query: CheckCodeConditionType,
-  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
-    const result = await this.service.checkCode(req.user.sub, query.code);
-    return {
-      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
       data: result,
       statusCode: HttpStatus.OK,
     };
