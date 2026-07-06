@@ -235,6 +235,14 @@ export class VaccineService {
     };
   }
 
+  async checkTemplateCode(code: string): Promise<{ isAvailable: boolean }> {
+    const existing = await this.prisma.vaccine.count({
+      where: { farmId: null, code },
+    });
+
+    return { isAvailable: existing === 0 };
+  }
+
   async createTemplate(data: CreateVaccine): Promise<Vaccine> {
     const isCodeAlreadyUse = await this.prisma.vaccine.count({
       where: { code: data.code, farmId: null },

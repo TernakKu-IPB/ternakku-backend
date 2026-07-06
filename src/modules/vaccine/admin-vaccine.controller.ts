@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { VaccineService } from './vaccine.service';
@@ -17,7 +18,11 @@ import { VerifiedAccount } from '../auth/decorator/verified-account.decarator';
 import { Role } from '../auth/decorator/role.decarator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { VaccineValidation } from './vaccine.validation';
-import type { CreateVaccine, UpdateVaccine } from './vaccine.validation';
+import type {
+  CheckCodeVaccine,
+  CreateVaccine,
+  UpdateVaccine,
+} from './vaccine.validation';
 import { Vaccine } from './vaccine.model';
 import { ApiResponse } from '../../types';
 
@@ -27,6 +32,20 @@ import { ApiResponse } from '../../types';
 @Role('admin')
 export class AdminVaccineController {
   constructor(private readonly service: VaccineService) {}
+
+  @Get('check-code')
+  @HttpCode(HttpStatus.OK)
+  async checkCode(
+    @Query(new ZodValidationPipe(VaccineValidation.CHECK_CODE))
+    query: CheckCodeVaccine,
+  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
+    const result = await this.service.checkTemplateCode(query.code);
+    return {
+      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)

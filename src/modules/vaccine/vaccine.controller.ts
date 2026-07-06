@@ -48,6 +48,21 @@ export class VaccineController {
     };
   }
 
+  @Get('check-code')
+  @HttpCode(HttpStatus.OK)
+  async checkCode(
+    @Req() req: Request & { user: JwtPayload },
+    @Query(new ZodValidationPipe(VaccineValidation.CHECK_CODE))
+    query: CheckCodeVaccine,
+  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
+    const result = await this.service.checkCode(req.user.sub, query.code);
+    return {
+      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAll(
@@ -72,21 +87,6 @@ export class VaccineController {
     const result = await this.service.getDetail(req.user.sub, id);
     return {
       message: 'Detail vaksin berhasil diambil',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
-  }
-
-  @Get('check-code')
-  @HttpCode(HttpStatus.OK)
-  async checkCode(
-    @Req() req: Request & { user: JwtPayload },
-    @Query(new ZodValidationPipe(VaccineValidation.CHECK_CODE))
-    query: CheckCodeVaccine,
-  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
-    const result = await this.service.checkCode(req.user.sub, query.code);
-    return {
-      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
       data: result,
       statusCode: HttpStatus.OK,
     };

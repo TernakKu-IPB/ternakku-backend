@@ -5,7 +5,7 @@ export class VaccineValidation {
     code: z
       .string()
       .min(2, 'Minimal 2 karakter')
-      .max(20, 'Maksimal 20 karakter')
+      .max(100, 'Maksimal 100 karakter')
       .regex(
         /^(?!-)(?!.*--)[a-z0-9-]+(?<!-)$/,
         'Hanya boleh berisi huruf kecil, angka, dan tanda hubung (-), serta tidak boleh diawali, diakhiri, atau memiliki dua tanda hubung berturut-turut',
