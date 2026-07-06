@@ -1,14 +1,17 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { AuthValidation } from './auth.validation';
 import type {
   EmailVerification,
@@ -156,5 +159,37 @@ export class AuthController {
       data: authData,
       statusCode: HttpStatus.OK,
     };
+  }
+
+  @Get('redirect-app')
+  redirectApp(@Query('token') token: string, @Res() res: Response) {
+    // HTML Sederhana untuk menjembatani email dan aplikasi mobile
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Membuka TernakKu...</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+              body { font-family: sans-serif; text-align: center; padding: 50px; }
+              .btn { display: inline-block; padding: 12px 24px; background: #2B959F; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }
+          </style>
+      </head>
+      <body>
+          <h2>Mengarahkan ke Aplikasi TernakKu...</h2>
+          <p>Jika aplikasi tidak terbuka secara otomatis, klik tombol di bawah ini:</p>
+          <a href="ternakku://reset-password?token=${token}" class="btn">Buka Aplikasi TernakKu</a>
+
+          <script>
+              // Otomatis melempar ke aplikasi mobile saat web terbuka
+              window.onload = function() {
+                  window.location.href = "ternakku://reset-password?token=${token}";
+              };
+          </script>
+      </body>
+      </html>
+    `;
+
+    res.type('text/html').send(html);
   }
 }

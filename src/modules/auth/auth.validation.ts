@@ -5,7 +5,7 @@ export class AuthValidation {
   static readonly REGISTER = z
     .object({
       username: IndexValidation.USERNAME,
-      email: z.email().nonempty('Tidak boleh kosong'),
+      email: z.email('Email tidak valid').nonempty('Tidak boleh kosong'),
       password: IndexValidation.PASSWORD,
       confirmPassword: z.string().min(8, 'Minimal 8 karakter'),
       fullName: z

@@ -280,7 +280,7 @@ export class AuthService {
       'CLIENT_URL',
       'http://localhost:5173',
     );
-    const resetPasswordLink = `${clientUrl}/auth/forgot-password?token=${token}`;
+    const resetPasswordLink = `${clientUrl}/auth/redirect-app?token=${token}`;
 
     await this.mail.sendEmail({
       to: user.email,
