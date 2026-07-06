@@ -3,13 +3,13 @@ import z from 'zod';
 export class IndexValidation {
   static readonly IDENTIFIER = z
     .string()
-    .min(3, 'Indentifier must be at least 3 characters long')
+    .min(3, 'Minimal 3 karakter')
     .refine(
       (value) =>
         /^[a-zA-Z0-9_]+$/.test(value) ||
         /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value),
       {
-        message: 'Identifier must be a valid email or username',
+        message: 'Nama pengguna atau email tidak valid',
       },
     );
 

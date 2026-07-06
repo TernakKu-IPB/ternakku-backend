@@ -4,183 +4,183 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-    provider     = "prisma-client"
-    output       = "../src/generated/prisma"
-    moduleFormat = "cjs"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
-    provider = "mysql"
+  provider = "mysql"
 }
 
 enum Gender {
-    male
-    female
+  male
+  female
 }
 
 enum Role {
-    admin
-    user
+  admin
+  user
 }
 
 enum LivestockStatus {
-    active
-    sold
-    dead
+  active
+  sold
+  dead
 }
 
 model User {
-    id Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-    username  String    @unique
-    email     String    @unique
-    password  String
-    role      Role      @default(user)
-    fullName  String    @map("full_name")
-    picture   String?
-    birthDate DateTime? @map("birth_date")
-    gender    Gender?
+  username  String    @unique
+  email     String    @unique
+  password  String
+  role      Role      @default(user)
+  fullName  String    @map("full_name")
+  picture   String?
+  birthDate DateTime? @map("birth_date")
+  gender    Gender?
 
-    otpCode       String   @map("otp_code")
-    otpExpiration DateTime @map("otp_expiration")
-    isVerified    Boolean  @default(false) @map("is_verified")
-    refreshToken  String?  @map("refresh_token") @db.Text
+  otpCode       String   @map("otp_code")
+  otpExpiration DateTime @map("otp_expiration")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  refreshToken  String?  @map("refresh_token") @db.Text
 
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    farm Farm?
+  farm Farm?
 
-    @@map("users")
+  @@map("users")
 }
 
 model Farm {
-    id          Int      @id @default(autoincrement())
-    userId      Int      @unique @map("user_id")
-    name        String
-    address     String   @db.Text
-    latitude    Decimal? @db.Decimal(10, 8)
-    longitude   Decimal? @db.Decimal(11, 8)
-    description String?  @db.Text
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  name        String
+  address     String   @db.Text
+  latitude    Decimal? @db.Decimal(10, 8)
+  longitude   Decimal? @db.Decimal(11, 8)
+  description String?  @db.Text
 
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-    animalTypes    AnimalType[]
-    conditionTypes ConditionType[]
-    vaccines       Vaccine[]
-    livestocks     Livestock[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  animalTypes    AnimalType[]
+  conditionTypes ConditionType[]
+  vaccines       Vaccine[]
+  livestocks     Livestock[]
 
-    @@map("farms")
+  @@map("farms")
 }
 
 model AnimalType {
-    id        Int      @id @default(autoincrement())
-    farmId    Int?     @map("farm_id") // If null = Global template from Admin
-    code      String
-    label     String
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  farmId    Int?     @map("farm_id") // If null = Global template from Admin
+  code      String
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    farm       Farm?       @relation(fields: [farmId], references: [id], onDelete: Cascade)
-    livestocks Livestock[]
+  farm       Farm?       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  livestocks Livestock[]
 
-    @@unique([code, farmId]) // Avoid duplication code at each farms
-    @@map("animal_types")
+  @@unique([code, farmId]) // Avoid duplication code at each farms
+  @@map("animal_types")
 }
 
 model ConditionType {
-    id        Int      @id @default(autoincrement())
-    farmId    Int?     @map("farm_id")
-    code      String
-    label     String
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  farmId    Int?     @map("farm_id")
+  code      String
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    farm               Farm?              @relation(fields: [farmId], references: [id], onDelete: Cascade)
-    conditionHistories ConditionHistory[]
+  farm               Farm?              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  conditionHistories ConditionHistory[]
 
-    @@unique([code, farmId])
-    @@map("condition_types")
+  @@unique([code, farmId])
+  @@map("condition_types")
 }
 
 model Vaccine {
-    id          Int      @id @default(autoincrement())
-    farmId      Int?     @map("farm_id")
-    code        String
-    name        String
-    description String?  @db.Text
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  farmId      Int?     @map("farm_id")
+  code        String
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-    farm                 Farm?                @relation(fields: [farmId], references: [id], onDelete: Cascade)
-    vaccinationHistories VaccinationHistory[]
+  farm                 Farm?                @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  vaccinationHistories VaccinationHistory[]
 
-    @@unique([code, farmId])
-    @@map("vaccines")
+  @@unique([code, farmId])
+  @@map("vaccines")
 }
 
 model Livestock {
-    id           Int             @id @default(autoincrement())
-    farmId       Int             @map("farm_id")
-    tagId        String?         @map("tag_id")
-    name         String?
-    picture      String?
-    animalTypeId Int             @map("animal_type_id")
-    gender       Gender
-    birthDate    DateTime?       @map("birth_date")
-    status       LivestockStatus @default(active)
+  id           Int             @id @default(autoincrement())
+  farmId       Int             @map("farm_id")
+  tagId        String?         @map("tag_id")
+  name         String?
+  picture      String?
+  animalTypeId Int             @map("animal_type_id")
+  gender       Gender
+  birthDate    DateTime?       @map("birth_date")
+  status       LivestockStatus @default(active)
 
-    // Self-relation for family tree
-    fatherId Int? @map("father_id")
-    motherId Int? @map("mother_id")
+  // Self-relation for family tree
+  fatherId Int? @map("father_id")
+  motherId Int? @map("mother_id")
 
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    farm                 Farm                 @relation(fields: [farmId], references: [id], onDelete: Cascade)
-    animalType           AnimalType           @relation(fields: [animalTypeId], references: [id])
-    father               Livestock?           @relation("Sire", fields: [fatherId], references: [id])
-    mother               Livestock?           @relation("Dam", fields: [motherId], references: [id])
-    childrenSire         Livestock[]          @relation("Sire")
-    childrenDam          Livestock[]          @relation("Dam")
-    conditionHistories   ConditionHistory[]
-    vaccinationHistories VaccinationHistory[]
+  farm                 Farm                 @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  animalType           AnimalType           @relation(fields: [animalTypeId], references: [id])
+  father               Livestock?           @relation("Sire", fields: [fatherId], references: [id])
+  mother               Livestock?           @relation("Dam", fields: [motherId], references: [id])
+  childrenSire         Livestock[]          @relation("Sire")
+  childrenDam          Livestock[]          @relation("Dam")
+  conditionHistories   ConditionHistory[]
+  vaccinationHistories VaccinationHistory[]
 
-    @@map("livestocks")
+  @@map("livestocks")
 }
 
 model ConditionHistory {
-    id              Int      @id @default(autoincrement())
-    livestockId     Int      @map("livestock_id")
-    conditionTypeId Int      @map("condition_type_id")
-    recordDate      DateTime @map("record_date")
-    notes           String?  @db.Text
+  id              Int      @id @default(autoincrement())
+  livestockId     Int      @map("livestock_id")
+  conditionTypeId Int      @map("condition_type_id")
+  recordDate      DateTime @map("record_date")
+  notes           String?  @db.Text
 
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    livestock     Livestock     @relation(fields: [livestockId], references: [id], onDelete: Cascade)
-    conditionType ConditionType @relation(fields: [conditionTypeId], references: [id])
+  livestock     Livestock     @relation(fields: [livestockId], references: [id], onDelete: Cascade)
+  conditionType ConditionType @relation(fields: [conditionTypeId], references: [id])
 
-    @@map("condition_histories")
+  @@map("condition_histories")
 }
 
 model VaccinationHistory {
-    id              Int      @id @default(autoincrement())
-    livestockId     Int      @map("livestock_id")
-    vaccineId       Int      @map("vaccine_id")
-    isVaccinated    Boolean  @default(false) @map("is_vaccinated")
-    vaccinationDate DateTime @map("vaccination_date")
-    batchNumber     String?  @map("batch_number")
-    notes           String?  @db.Text
+  id              Int      @id @default(autoincrement())
+  livestockId     Int      @map("livestock_id")
+  vaccineId       Int      @map("vaccine_id")
+  isVaccinated    Boolean  @default(false) @map("is_vaccinated")
+  vaccinationDate DateTime @map("vaccination_date")
+  batchNumber     String?  @map("batch_number")
+  notes           String?  @db.Text
 
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-    livestock Livestock @relation(fields: [livestockId], references: [id], onDelete: Cascade)
-    vaccine   Vaccine   @relation(fields: [vaccineId], references: [id])
+  livestock Livestock @relation(fields: [livestockId], references: [id], onDelete: Cascade)
+  vaccine   Vaccine   @relation(fields: [vaccineId], references: [id])
 
-    @@map("vaccination_histories")
+  @@map("vaccination_histories")
 }
