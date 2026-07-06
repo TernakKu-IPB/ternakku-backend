@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AnimalTypeService } from './animal-type.service';
@@ -18,6 +19,7 @@ import { Role } from '../auth/decorator/role.decarator'; // Sesuaikan path impor
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { AnimalTypeValidation } from './animal-type.validation';
 import type {
+  CheckCodeAnimalType,
   CreateAnimalType,
   UpdateAnimalType,
 } from './animal-type.validation';
@@ -30,6 +32,20 @@ import { ApiResponse } from '../../types';
 @Role('admin')
 export class AdminAnimalTypeController {
   constructor(private readonly service: AnimalTypeService) {}
+
+  @Get('check-code')
+  @HttpCode(HttpStatus.OK)
+  async checkCode(
+    @Query(new ZodValidationPipe(AnimalTypeValidation.CHECK_CODE))
+    query: CheckCodeAnimalType,
+  ): Promise<ApiResponse<{ isAvailable: boolean }>> {
+    const result = await this.service.checkTemplateCode(query.code);
+    return {
+      message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
+      data: result,
+      statusCode: HttpStatus.OK,
+    };
+  }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)

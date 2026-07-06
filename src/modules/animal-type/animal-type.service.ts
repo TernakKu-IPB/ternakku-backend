@@ -243,6 +243,14 @@ export class AnimalTypeService {
     };
   }
 
+  async checkTemplateCode(code: string): Promise<{ isAvailable: boolean }> {
+    const existing = await this.prisma.animalType.count({
+      where: { farmId: null, code },
+    });
+
+    return { isAvailable: existing === 0 };
+  }
+
   async createTemplate(data: CreateAnimalType): Promise<AnimalType> {
     const isCodeAlreadyUse = await this.prisma.animalType.count({
       where: { code: data.code, farmId: null },
