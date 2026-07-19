@@ -41,7 +41,14 @@ export class VaccinationHistoryController {
     @Query(new ZodValidationPipe(VaccinationHistoryValidation.GET_ALL))
     query: GetAllVaccinationHistory,
   ): Promise<
-    ApiResponse<{ vaccinationHistories: VaccinationHistory[] } & ApiPagination>
+    ApiResponse<
+      {
+        vaccinationHistories: (VaccinationHistory & {
+          vaccine: { id: number; name: string };
+          livestock: { id: number; name: string | null; tagId: string | null };
+        })[];
+      } & ApiPagination
+    >
   > {
     const result = await this.service.getAll(req.user.sub, query);
     return {

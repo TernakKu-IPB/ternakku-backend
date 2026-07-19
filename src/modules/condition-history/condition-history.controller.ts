@@ -41,7 +41,14 @@ export class ConditionHistoryController {
     @Query(new ZodValidationPipe(ConditionHistoryValidation.GET_ALL))
     query: GetAllConditionHistory,
   ): Promise<
-    ApiResponse<{ conditionHistories: ConditionHistory[] } & ApiPagination>
+    ApiResponse<
+      {
+        conditionHistories: (ConditionHistory & {
+          livestock: { id: number; name: string | null; tagId: string | null };
+          conditionType: { id: number; label: string };
+        })[];
+      } & ApiPagination
+    >
   > {
     const result = await this.service.getAll(req.user.sub, query);
     return {

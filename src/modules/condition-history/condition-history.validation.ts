@@ -33,6 +33,8 @@ export class ConditionHistoryValidation {
       .or(z.literal(''))
       .transform((val) => (val === '' ? undefined : val))
       .optional(),
+    startDate: IndexValidation.OPTIONAL_DATE.optional(),
+    endDate: IndexValidation.OPTIONAL_DATE.optional(),
   });
 }
 

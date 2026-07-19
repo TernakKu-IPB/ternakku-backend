@@ -49,7 +49,14 @@ export class VaccinationHistoryService {
   async getAll(
     userId: number,
     data: GetAllVaccinationHistory,
-  ): Promise<{ vaccinationHistories: VaccinationHistory[] } & ApiPagination> {
+  ): Promise<
+    {
+      vaccinationHistories: (VaccinationHistory & {
+        vaccine: { id: number; name: string };
+        livestock: { id: number; name: string | null; tagId: string | null };
+      })[];
+    } & ApiPagination
+  > {
     const farmId = await this.farm.getFarmId(userId);
     const isVaccinated =
       data.isVaccinated === 'true'
@@ -64,6 +71,26 @@ export class VaccinationHistoryService {
         ...(data.livestockId && { livestockId: data.livestockId }),
         ...(data.vaccineId && { vaccineId: data.vaccineId }),
         ...(isVaccinated !== undefined && { isVaccinated }),
+        ...(data.startDate || data.endDate
+          ? {
+              vaccinationDate: {
+                ...(data.startDate && {
+                  gte: dayjs(data.startDate).startOf('day').toDate(),
+                }),
+                ...(data.endDate && {
+                  lte: dayjs(data.endDate).endOf('day').toDate(),
+                }),
+              },
+            }
+          : {}),
+      },
+      include: {
+        vaccine: {
+          select: { id: true, name: true },
+        },
+        livestock: {
+          select: { id: true, name: true, tagId: true },
+        },
       },
       orderBy: { vaccinationDate: 'desc' },
       take: data.limit + 1,

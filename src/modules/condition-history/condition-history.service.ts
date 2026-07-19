@@ -34,7 +34,14 @@ export class ConditionHistoryService {
   async getAll(
     userId: number,
     data: GetAllConditionHistory,
-  ): Promise<{ conditionHistories: ConditionHistory[] } & ApiPagination> {
+  ): Promise<
+    {
+      conditionHistories: (ConditionHistory & {
+        livestock: { id: number; name: string | null; tagId: string | null };
+        conditionType: { id: number; label: string };
+      })[];
+    } & ApiPagination
+  > {
     const farmId = await this.farm.getFarmId(userId);
 
     const conditionHistories = await this.prisma.conditionHistory.findMany({
@@ -42,6 +49,26 @@ export class ConditionHistoryService {
         livestock: { farmId },
         ...(data.livestockId && { livestockId: data.livestockId }),
         ...(data.conditionTypeId && { conditionTypeId: data.conditionTypeId }),
+        ...(data.startDate || data.endDate
+          ? {
+              recordDate: {
+                ...(data.startDate && {
+                  gte: dayjs(data.startDate).startOf('day').toDate(),
+                }),
+                ...(data.endDate && {
+                  lte: dayjs(data.endDate).endOf('day').toDate(),
+                }),
+              },
+            }
+          : {}),
+      },
+      include: {
+        livestock: {
+          select: { id: true, name: true, tagId: true },
+        },
+        conditionType: {
+          select: { id: true, label: true },
+        },
       },
       orderBy: { recordDate: 'desc' },
       take: data.limit + 1,
