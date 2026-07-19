@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import type { Vaccine } from './vaccine.model';
@@ -161,24 +162,36 @@ export class VaccineService {
   }
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.vaccine.findUnique({
-      where: { id },
-      select: { farmId: true },
-    });
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      const existing = await this.prisma.vaccine.findUnique({
+        where: { id },
+        select: { farmId: true },
+      });
 
-    if (!existing) throw new NotFoundException('Data tidak ditemukan');
-    if (existing.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat menghapus vaksin dalam peternakan Anda sendiri',
-      );
+      if (!existing) throw new NotFoundException('Data tidak ditemukan');
+      if (existing.farmId !== farmId) {
+        throw new ForbiddenException(
+          'Anda hanya dapat menghapus vaksin dalam peternakan Anda sendiri',
+        );
+      }
+
+      const deleted = await this.prisma.vaccine.delete({
+        where: { id },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new UnprocessableEntityException(
+          'Tidak dapat menghapus jenis vaksin yang sudah digunakan',
+        );
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.vaccine.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 
   async getAllTemplates(
@@ -300,22 +313,34 @@ export class VaccineService {
   }
 
   async deleteTemplate(id: number): Promise<{ id: number }> {
-    const existing = await this.prisma.vaccine.findUnique({
-      where: { id },
-      select: { farmId: true },
-    });
+    try {
+      const existing = await this.prisma.vaccine.findUnique({
+        where: { id },
+        select: { farmId: true },
+      });
 
-    if (!existing) throw new NotFoundException('Vaksin tidak ditemukan');
-    if (existing.farmId !== null) {
-      throw new ForbiddenException(
-        'Anda hanya dapat menghapus template sistem',
-      );
+      if (!existing) throw new NotFoundException('Vaksin tidak ditemukan');
+      if (existing.farmId !== null) {
+        throw new ForbiddenException(
+          'Anda hanya dapat menghapus template sistem',
+        );
+      }
+
+      const deleted = await this.prisma.vaccine.delete({
+        where: { id },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new UnprocessableEntityException(
+          'Tidak dapat menghapus jenis vaksin yang sudah digunakan',
+        );
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.vaccine.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 }

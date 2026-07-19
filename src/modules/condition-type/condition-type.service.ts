@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import type { ConditionType } from './condition-type.model';
@@ -177,24 +178,36 @@ export class ConditionTypeService {
   }
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.conditionType.findUnique({
-      where: { id },
-      select: { farmId: true },
-    });
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      const existing = await this.prisma.conditionType.findUnique({
+        where: { id },
+        select: { farmId: true },
+      });
 
-    if (!existing) throw new NotFoundException('Data tidak ditemukan');
-    if (existing.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat menghapus jenis kondisi dalam peternakan Anda sendiri',
-      );
+      if (!existing) throw new NotFoundException('Data tidak ditemukan');
+      if (existing.farmId !== farmId) {
+        throw new ForbiddenException(
+          'Anda hanya dapat menghapus jenis kondisi dalam peternakan Anda sendiri',
+        );
+      }
+
+      const deleted = await this.prisma.conditionType.delete({
+        where: { id },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new UnprocessableEntityException(
+          'Tidak dapat menghapus jenis kondisi yang sudah digunakan',
+        );
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.conditionType.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 
   async getAllTemplates(
@@ -330,22 +343,35 @@ export class ConditionTypeService {
   }
 
   async deleteTemplate(id: number): Promise<{ id: number }> {
-    const existing = await this.prisma.conditionType.findUnique({
-      where: { id },
-      select: { farmId: true },
-    });
+    try {
+      const existing = await this.prisma.conditionType.findUnique({
+        where: { id },
+        select: { farmId: true },
+      });
 
-    if (!existing) throw new NotFoundException('Jenis kondisi tidak ditemukan');
-    if (existing.farmId !== null) {
-      throw new ForbiddenException(
-        'Anda hanya dapat menghapus template sistem',
-      );
+      if (!existing)
+        throw new NotFoundException('Jenis kondisi tidak ditemukan');
+      if (existing.farmId !== null) {
+        throw new ForbiddenException(
+          'Anda hanya dapat menghapus template sistem',
+        );
+      }
+
+      const deleted = await this.prisma.conditionType.delete({
+        where: { id },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new UnprocessableEntityException(
+          'Tidak dapat menghapus jenis kondisi yang sudah digunakan',
+        );
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.conditionType.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 }
