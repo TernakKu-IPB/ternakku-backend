@@ -11,11 +11,8 @@ import { PrismaService } from './prisma.service';
 import { JwtService } from './jwt.service';
 import { MailService } from './mail.service';
 import { ModelPaginationService } from './model-pagination.service';
-import { FarmService } from './farm.service';
-import { AnimalTypeService } from './animal-type.service';
-import { ConditionTypeService } from './condition-type.service';
 import { LivestockService } from './livestock.service';
-import { VaccineService } from './vaccine.service';
+import { FarmService } from './farm.service';
 
 @Global()
 @Module({
@@ -73,10 +70,7 @@ import { VaccineService } from './vaccine.service';
     MailService,
     ModelPaginationService,
     FarmService,
-    AnimalTypeService,
-    ConditionTypeService,
     LivestockService,
-    VaccineService,
   ],
   exports: [
     PrismaService,
@@ -84,10 +78,7 @@ import { VaccineService } from './vaccine.service';
     MailService,
     ModelPaginationService,
     FarmService,
-    AnimalTypeService,
-    ConditionTypeService,
     LivestockService,
-    VaccineService,
   ],
 })
 export class CommonModule {}

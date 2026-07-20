@@ -67,9 +67,6 @@ model Farm {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  animalTypes    AnimalType[]
-  conditionTypes ConditionType[]
-  vaccines       Vaccine[]
   livestocks     Livestock[]
 
   @@map("farms")
@@ -77,47 +74,38 @@ model Farm {
 
 model AnimalType {
   id        Int      @id @default(autoincrement())
-  farmId    Int?     @map("farm_id") // If null = Global template from Admin
-  code      String
+  code      String @unique
   label     String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  farm       Farm?       @relation(fields: [farmId], references: [id], onDelete: Cascade)
   livestocks Livestock[]
 
-  @@unique([code, farmId]) // Avoid duplication code at each farms
   @@map("animal_types")
 }
 
 model ConditionType {
   id        Int      @id @default(autoincrement())
-  farmId    Int?     @map("farm_id")
-  code      String
+  code      String @unique
   label     String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  farm               Farm?              @relation(fields: [farmId], references: [id], onDelete: Cascade)
   conditionHistories ConditionHistory[]
 
-  @@unique([code, farmId])
   @@map("condition_types")
 }
 
 model Vaccine {
   id          Int      @id @default(autoincrement())
-  farmId      Int?     @map("farm_id")
-  code        String
+  code        String @unique
   name        String
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  farm                 Farm?                @relation(fields: [farmId], references: [id], onDelete: Cascade)
   vaccinationHistories VaccinationHistory[]
 
-  @@unique([code, farmId])
   @@map("vaccines")
 }
 

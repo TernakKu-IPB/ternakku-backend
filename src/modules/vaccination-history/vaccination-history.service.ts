@@ -1,5 +1,4 @@
 import {
-  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -18,7 +17,7 @@ import type {
 } from './vaccination-history.validation';
 import { ApiPagination } from '../../types';
 import { LivestockService } from '../../common/livestock.service';
-import { VaccineService } from '../../common/vaccine.service';
+import { Prisma } from '../../generated/prisma/client';
 
 dayjs.extend(utc);
 
@@ -29,7 +28,6 @@ export class VaccinationHistoryService {
     private farm: FarmService,
     private modelPagination: ModelPaginationService,
     private livestock: LivestockService,
-    private vaccine: VaccineService,
   ) {}
 
   private validateVaccinationLogic(
@@ -131,7 +129,7 @@ export class VaccinationHistoryService {
   async getDetail(userId: number, id: number): Promise<VaccinationHistory> {
     const farmId = await this.farm.getFarmId(userId);
     const history = await this.prisma.vaccinationHistory.findUnique({
-      where: { id },
+      where: { id, livestock: { farmId } },
       include: {
         livestock: {
           select: { farmId: true },
@@ -141,11 +139,6 @@ export class VaccinationHistoryService {
 
     if (!history) {
       throw new NotFoundException('Riwayat vaksinasi tidak ditemukan');
-    }
-    if (history.livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat melihat vaksinasi ternak dalam peternakan Anda sendiri',
-      );
     }
 
     return {
@@ -159,24 +152,33 @@ export class VaccinationHistoryService {
     userId: number,
     data: CreateVaccinationHistory,
   ): Promise<VaccinationHistory> {
-    const farmId = await this.farm.getFarmId(userId);
+    try {
+      await this.livestock.checkAvailability(data.livestockId, userId);
+      this.validateVaccinationLogic(data.isVaccinated, data.vaccinationDate);
 
-    await this.livestock.checkAvailability(data.livestockId, farmId);
-    await this.vaccine.checkAvailability(data.vaccineId, farmId);
-    this.validateVaccinationLogic(data.isVaccinated, data.vaccinationDate);
+      const history = await this.prisma.vaccinationHistory.create({
+        data: {
+          ...data,
+          vaccinationDate: dayjs.utc(data.vaccinationDate).toISOString(),
+        },
+      });
 
-    const history = await this.prisma.vaccinationHistory.create({
-      data: {
-        ...data,
-        vaccinationDate: dayjs.utc(data.vaccinationDate).toISOString(),
-      },
-    });
-
-    return {
-      ...history,
-      vaccinationDate: dayjs.utc(history.vaccinationDate).format('YYYY-MM-DD'),
-      ...formatCreateAndUpdateAt(history.createdAt, history.updatedAt),
-    };
+      return {
+        ...history,
+        vaccinationDate: dayjs
+          .utc(history.vaccinationDate)
+          .format('YYYY-MM-DD'),
+        ...formatCreateAndUpdateAt(history.createdAt, history.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new NotFoundException('Vaksin tidak ditemukan');
+      }
+      throw err;
+    }
   }
 
   async update(
@@ -184,87 +186,83 @@ export class VaccinationHistoryService {
     id: number,
     data: UpdateVaccinationHistory,
   ): Promise<VaccinationHistory> {
-    const farmId = await this.farm.getFarmId(userId);
+    try {
+      const farmId = await this.farm.getFarmId(userId);
 
-    const existing = await this.prisma.vaccinationHistory.findUnique({
-      where: { id },
-      select: {
-        vaccineId: true,
-        livestockId: true,
-        isVaccinated: true,
-        vaccinationDate: true,
-        livestock: {
-          select: { farmId: true },
+      const existing = await this.prisma.vaccinationHistory.findUnique({
+        where: { id, livestock: { farmId } },
+        select: {
+          vaccineId: true,
+          livestockId: true,
+          isVaccinated: true,
+          vaccinationDate: true,
+          livestock: {
+            select: { farmId: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!existing)
-      throw new NotFoundException('Riwayat vaksinasi tidak ditemukan');
-    if (existing.livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat mengubah vaksinasi ternak dalam peternakan Anda sendiri',
-      );
+      if (!existing)
+        throw new NotFoundException('Riwayat vaksinasi tidak ditemukan');
+
+      if (data.livestockId && data.livestockId !== existing.livestockId) {
+        await this.livestock.checkAvailability(data.livestockId, farmId);
+      }
+
+      const isVaccinated =
+        data.isVaccinated !== undefined
+          ? data.isVaccinated
+          : existing.isVaccinated;
+      const vaccinationDate =
+        data.vaccinationDate !== undefined
+          ? data.vaccinationDate
+          : existing.vaccinationDate;
+      this.validateVaccinationLogic(isVaccinated, vaccinationDate);
+
+      const updated = await this.prisma.vaccinationHistory.update({
+        where: { id },
+        data: {
+          ...data,
+          ...(data.vaccinationDate && {
+            vaccinationDate: dayjs.utc(data.vaccinationDate).toISOString(),
+          }),
+        },
+      });
+
+      return {
+        ...updated,
+        vaccinationDate: dayjs
+          .utc(updated.vaccinationDate)
+          .format('YYYY-MM-DD'),
+        ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new NotFoundException('Vaksin tidak ditemukan');
+      }
+      throw err;
     }
-
-    if (data.livestockId && data.livestockId !== existing.livestockId) {
-      await this.livestock.checkAvailability(data.livestockId, farmId);
-    }
-
-    if (data.vaccineId && data.vaccineId !== existing.vaccineId) {
-      await this.vaccine.checkAvailability(data.vaccineId, farmId);
-    }
-
-    const isVaccinated =
-      data.isVaccinated !== undefined
-        ? data.isVaccinated
-        : existing.isVaccinated;
-    const vaccinationDate =
-      data.vaccinationDate !== undefined
-        ? data.vaccinationDate
-        : existing.vaccinationDate;
-    this.validateVaccinationLogic(isVaccinated, vaccinationDate);
-
-    const updated = await this.prisma.vaccinationHistory.update({
-      where: { id },
-      data: {
-        ...data,
-        ...(data.vaccinationDate && {
-          vaccinationDate: dayjs.utc(data.vaccinationDate).toISOString(),
-        }),
-      },
-    });
-
-    return {
-      ...updated,
-      vaccinationDate: dayjs.utc(updated.vaccinationDate).format('YYYY-MM-DD'),
-      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
-    };
   }
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.vaccinationHistory.findUnique({
-      where: { id },
-      select: {
-        livestock: {
-          select: { farmId: true },
-        },
-      },
-    });
-
-    if (!existing)
-      throw new NotFoundException('Riwayat vaksinasi tidak ditemukan');
-    if (existing.livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda tidak berhak menghapus data milik peternakan lain',
-      );
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      const deleted = await this.prisma.vaccinationHistory.delete({
+        where: { id, livestock: { farmId } },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2025'
+      ) {
+        throw new NotFoundException('Riwayat vaksinasi tidak ditemukan');
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.vaccinationHistory.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 }

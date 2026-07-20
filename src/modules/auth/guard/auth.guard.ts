@@ -51,7 +51,6 @@ export abstract class BaseGuard implements CanActivate {
         context.getHandler(),
         context.getClass(),
       ]);
-      console.log(role);
       if (role) {
         await this.checkAuthorization(role, request.user);
       }

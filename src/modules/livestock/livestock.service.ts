@@ -1,5 +1,4 @@
 import {
-  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -18,7 +17,7 @@ import type {
 import { Gender } from '../../generated/prisma/enums';
 import { ApiPagination } from '../../types';
 import { ModelPaginationService } from '../../common/model-pagination.service';
-import { AnimalTypeService } from '../../common/animal-type.service';
+import { Prisma } from '../../generated/prisma/client';
 
 dayjs.extend(utc);
 
@@ -28,7 +27,6 @@ export class LivestockService {
     private prisma: PrismaService,
     private farm: FarmService,
     private modelPagination: ModelPaginationService,
-    private animalType: AnimalTypeService,
   ) {}
 
   private async validateParents(
@@ -126,14 +124,11 @@ export class LivestockService {
 
   async getDetail(userId: number, id: number): Promise<Livestock> {
     const farmId = await this.farm.getFarmId(userId);
-    const livestock = await this.prisma.livestock.findUnique({ where: { id } });
+    const livestock = await this.prisma.livestock.findUnique({
+      where: { id, farmId },
+    });
 
     if (!livestock) throw new NotFoundException('Data ternak tidak ditemukan');
-    if (livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat melihat data ternak dalam peternakan Anda sendiri',
-      );
-    }
 
     return {
       ...livestock,
@@ -145,27 +140,36 @@ export class LivestockService {
   }
 
   async create(userId: number, data: CreateLivestock): Promise<Livestock> {
-    const farmId = await this.farm.getFarmId(userId);
-    await this.animalType.checkAvailability(data.animalTypeId, farmId);
-    await this.validateParents(farmId, data.fatherId, data.motherId);
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      await this.validateParents(farmId, data.fatherId, data.motherId);
 
-    const livestock = await this.prisma.livestock.create({
-      data: {
-        ...data,
-        birthDate: data.birthDate
-          ? dayjs.utc(data.birthDate).toISOString()
-          : data.birthDate,
-        farmId,
-      },
-    });
+      const livestock = await this.prisma.livestock.create({
+        data: {
+          ...data,
+          birthDate: data.birthDate
+            ? dayjs.utc(data.birthDate).toISOString()
+            : data.birthDate,
+          farmId,
+        },
+      });
 
-    return {
-      ...livestock,
-      birthDate: livestock.birthDate
-        ? dayjs.utc(livestock.birthDate).format('YYYY-MM-DD')
-        : null,
-      ...formatCreateAndUpdateAt(livestock.createdAt, livestock.updatedAt),
-    };
+      return {
+        ...livestock,
+        birthDate: livestock.birthDate
+          ? dayjs.utc(livestock.birthDate).format('YYYY-MM-DD')
+          : null,
+        ...formatCreateAndUpdateAt(livestock.createdAt, livestock.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new NotFoundException('Jenis ternak tidak ditemukan');
+      }
+      throw err;
+    }
   }
 
   async update(
@@ -173,100 +177,97 @@ export class LivestockService {
     id: number,
     data: UpdateLivestock,
   ): Promise<Livestock> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.livestock.findUnique({
-      where: { id },
-      select: {
-        farmId: true,
-        animalTypeId: true,
-        fatherId: true,
-        motherId: true,
-        gender: true,
-      },
-    });
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      const existing = await this.prisma.livestock.findUnique({
+        where: { id, farmId },
+        select: {
+          fatherId: true,
+          motherId: true,
+          gender: true,
+        },
+      });
 
-    if (!existing) throw new NotFoundException('Data ternak tidak ditemukan');
-    if (existing.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat mengubah data ternak dalam peternakan Anda sendiri',
+      if (!existing) throw new NotFoundException('Data ternak tidak ditemukan');
+
+      if (data.fatherId === id || data.motherId === id) {
+        throw new UnprocessableEntityException(
+          'Ternak tidak bisa menjadi induk/pejantan bagi dirinya sendiri',
+        );
+      }
+
+      await this.validateParents(
+        farmId,
+        data.fatherId !== undefined ? data.fatherId : existing.fatherId,
+        data.motherId !== undefined ? data.motherId : existing.motherId,
       );
-    }
 
-    if (data.animalTypeId && data.animalTypeId !== existing.animalTypeId) {
-      await this.animalType.checkAvailability(data.animalTypeId, farmId);
-    }
-
-    if (data.fatherId === id || data.motherId === id) {
-      throw new UnprocessableEntityException(
-        'Ternak tidak bisa menjadi induk/pejantan bagi dirinya sendiri',
-      );
-    }
-
-    await this.validateParents(
-      farmId,
-      data.fatherId !== undefined ? data.fatherId : existing.fatherId,
-      data.motherId !== undefined ? data.motherId : existing.motherId,
-    );
-
-    if (data.gender && data.gender !== existing.gender) {
-      if (data.gender === Gender.male) {
-        const asMotherCount = await this.prisma.livestock.count({
-          where: { motherId: id },
-        });
-        if (asMotherCount > 0) {
-          throw new UnprocessableEntityException(
-            'Tidak dapat mengubah jenis kelamin menjadi jantan karena ternak ini sudah tercatat sebagai induk dari ternak lain',
-          );
-        }
-      } else if (data.gender === Gender.female) {
-        const asFatherCount = await this.prisma.livestock.count({
-          where: { fatherId: id },
-        });
-        if (asFatherCount > 0) {
-          throw new UnprocessableEntityException(
-            'Tidak dapat mengubah jenis kelamin menjadi betina karena ternak ini sudah tercatat sebagai pejantan dari ternak lain',
-          );
+      if (data.gender && data.gender !== existing.gender) {
+        if (data.gender === Gender.male) {
+          const asMotherCount = await this.prisma.livestock.count({
+            where: { motherId: id },
+          });
+          if (asMotherCount > 0) {
+            throw new UnprocessableEntityException(
+              'Tidak dapat mengubah jenis kelamin menjadi jantan karena ternak ini sudah tercatat sebagai induk dari ternak lain',
+            );
+          }
+        } else if (data.gender === Gender.female) {
+          const asFatherCount = await this.prisma.livestock.count({
+            where: { fatherId: id },
+          });
+          if (asFatherCount > 0) {
+            throw new UnprocessableEntityException(
+              'Tidak dapat mengubah jenis kelamin menjadi betina karena ternak ini sudah tercatat sebagai pejantan dari ternak lain',
+            );
+          }
         }
       }
+
+      const updated = await this.prisma.livestock.update({
+        where: { id },
+        data: {
+          ...data,
+          birthDate: data.birthDate
+            ? dayjs.utc(data.birthDate).toISOString()
+            : data.birthDate,
+        },
+      });
+
+      return {
+        ...updated,
+        birthDate: updated.birthDate
+          ? dayjs.utc(updated.birthDate).format('YYYY-MM-DD')
+          : null,
+        ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new NotFoundException('Jenis ternak tidak ditemukan');
+      }
+      throw err;
     }
-
-    const updated = await this.prisma.livestock.update({
-      where: { id },
-      data: {
-        ...data,
-        birthDate: data.birthDate
-          ? dayjs.utc(data.birthDate).toISOString()
-          : data.birthDate,
-      },
-    });
-
-    return {
-      ...updated,
-      birthDate: updated.birthDate
-        ? dayjs.utc(updated.birthDate).format('YYYY-MM-DD')
-        : null,
-      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
-    };
   }
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.livestock.findUnique({
-      where: { id },
-      select: { farmId: true },
-    });
-
-    if (!existing) throw new NotFoundException('Data ternak tidak ditemukan');
-    if (existing.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat menghapus data ternak dalam peternakan Anda sendiri',
-      );
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      const deleted = await this.prisma.livestock.delete({
+        where: { id, farmId },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2025'
+      ) {
+        throw new NotFoundException('Data ternak tidak ditemukan');
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.livestock.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 }

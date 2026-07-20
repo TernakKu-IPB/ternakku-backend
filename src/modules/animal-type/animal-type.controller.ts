@@ -10,14 +10,12 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AnimalTypeService } from './animal-type.service';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { VerifiedAccount } from '../auth/decorator/verified-account.decarator';
-import type { Request } from 'express';
-import { JwtPayload, ApiResponse, ApiPagination } from '../../types';
+import { Role } from '../auth/decorator/role.decarator'; // Sesuaikan path import Role Anda
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { AnimalTypeValidation } from './animal-type.validation';
 import type {
@@ -27,35 +25,22 @@ import type {
   UpdateAnimalType,
 } from './animal-type.validation';
 import { AnimalType } from './animal-type.model';
+import { ApiPagination, ApiResponse } from '../../types';
 
 @Controller('animal-types')
-@UseGuards(AuthGuard)
-@VerifiedAccount()
 export class AnimalTypeController {
   constructor(private readonly service: AnimalTypeService) {}
 
-  @Get('templates')
-  @HttpCode(HttpStatus.OK)
-  async getAllTemplates(
-    @Query(new ZodValidationPipe(AnimalTypeValidation.GET_ALL))
-    query: GetAllAnimalType,
-  ): Promise<ApiResponse<{ animalTypes: AnimalType[] } & ApiPagination>> {
-    const result = await this.service.getAllTemplates(query);
-    return {
-      message: 'Template jenis hewan berhasil diambil',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
-  }
-
   @Get('check-code')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async checkCode(
-    @Req() req: Request & { user: JwtPayload },
     @Query(new ZodValidationPipe(AnimalTypeValidation.CHECK_CODE))
     query: CheckCodeAnimalType,
   ): Promise<ApiResponse<{ isAvailable: boolean }>> {
-    const result = await this.service.checkCode(req.user.sub, query.code);
+    const result = await this.service.checkCode(query.code);
     return {
       message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
       data: result,
@@ -65,15 +50,14 @@ export class AnimalTypeController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAll(
-    @Req() req: Request & { user: JwtPayload },
+  async getAllTemplates(
     @Query(new ZodValidationPipe(AnimalTypeValidation.GET_ALL))
     query: GetAllAnimalType,
   ): Promise<ApiResponse<{ animalTypes: AnimalType[] } & ApiPagination>> {
-    const data = await this.service.getAll(req.user.sub, query);
+    const result = await this.service.getAll(query);
     return {
-      message: 'Data jenis hewan berhasil diambil',
-      data,
+      message: 'Template jenis hewan berhasil diambil',
+      data: result,
       statusCode: HttpStatus.OK,
     };
   }
@@ -81,12 +65,11 @@ export class AnimalTypeController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getDetail(
-    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<AnimalType>> {
-    const result = await this.service.getDetail(req.user.sub, id);
+    const result = await this.service.getDetail(id);
     return {
-      message: 'Detail jenis hewan berhasil diambil',
+      message: 'Detail template jenis hewan berhasil diambil',
       data: result,
       statusCode: HttpStatus.OK,
     };
@@ -94,14 +77,16 @@ export class AnimalTypeController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async create(
-    @Req() req: Request & { user: JwtPayload },
     @Body(new ZodValidationPipe(AnimalTypeValidation.CREATE))
     data: CreateAnimalType,
   ): Promise<ApiResponse<AnimalType>> {
-    const result = await this.service.create(req.user.sub, data);
+    const result = await this.service.create(data);
     return {
-      message: 'Jenis hewan berhasil ditambahkan',
+      message: 'Template jenis hewan berhasil ditambahkan',
       data: result,
       statusCode: HttpStatus.CREATED,
     };
@@ -109,15 +94,17 @@ export class AnimalTypeController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async update(
-    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
     @Body(new ZodValidationPipe(AnimalTypeValidation.UPDATE))
     data: UpdateAnimalType,
   ): Promise<ApiResponse<AnimalType>> {
-    const result = await this.service.update(req.user.sub, id, data);
+    const result = await this.service.update(id, data);
     return {
-      message: 'Jenis hewan berhasil diperbarui',
+      message: 'Template jenis hewan berhasil diperbarui',
       data: result,
       statusCode: HttpStatus.OK,
     };
@@ -125,13 +112,15 @@ export class AnimalTypeController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async delete(
-    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<{ id: number }>> {
-    const result = await this.service.delete(req.user.sub, id);
+    const result = await this.service.delete(id);
     return {
-      message: 'Tipe hewan berhasil dihapus',
+      message: 'Template jenis hewan berhasil dihapus',
       data: result,
       statusCode: HttpStatus.OK,
     };

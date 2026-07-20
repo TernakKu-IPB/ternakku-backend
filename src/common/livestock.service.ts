@@ -1,11 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { FarmService } from './farm.service';
 
 @Injectable()
 export class LivestockService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private farm: FarmService,
+  ) {}
 
-  async checkAvailability(id: number, farmId: number) {
+  async checkAvailability(id: number, userId: number) {
+    const farmId = await this.farm.getFarmId(userId);
     const livestock = await this.prisma.livestock.count({
       where: { id, farmId },
     });

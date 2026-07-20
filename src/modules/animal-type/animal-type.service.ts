@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -16,195 +15,19 @@ import {
 import { Prisma } from '../../generated/prisma/client';
 import { ModelPaginationService } from '../../common/model-pagination.service';
 import { ApiPagination } from '../../types';
-import { FarmService } from '../../common/farm.service';
 
 @Injectable()
 export class AnimalTypeService {
   constructor(
     private prisma: PrismaService,
     private modelPagination: ModelPaginationService,
-    private farm: FarmService,
   ) {}
 
   async getAll(
-    userId: number,
-    data: GetAllAnimalType,
-  ): Promise<{ animalTypes: AnimalType[] } & ApiPagination> {
-    const farmId = await this.farm.getFarmId(userId);
-    const animalTypes = await this.prisma.animalType.findMany({
-      where: {
-        farmId,
-        ...(data.q && {
-          OR: [{ code: { contains: data.q } }, { label: { contains: data.q } }],
-        }),
-      },
-      orderBy: { label: 'asc' },
-      take: data.limit + 1,
-      skip: data.offset,
-    });
-
-    const endpoint = '/animal-types';
-    const params = new URLSearchParams();
-    if (data.q) params.set('q', data.q);
-    const { hasNextPage, paging } = this.modelPagination.getServerPageLink(
-      data.offset,
-      data.limit,
-      animalTypes.length,
-      endpoint,
-      params,
-    );
-
-    return {
-      animalTypes: (hasNextPage ? animalTypes.slice(0, -1) : animalTypes).map(
-        (animalType) => ({
-          ...animalType,
-          ...formatCreateAndUpdateAt(
-            animalType.createdAt,
-            animalType.updatedAt,
-          ),
-        }),
-      ),
-      paging,
-    };
-  }
-
-  async getDetail(userId: number, id: number): Promise<AnimalType> {
-    const farmId = await this.farm.getFarmId(userId);
-    const animalType = await this.prisma.animalType.findUnique({
-      where: { id },
-    });
-
-    if (!animalType) throw new NotFoundException('Jenis hewan tidak ditemukan');
-    if (animalType.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat melihat jenis hewan dalam peternakan Anda sendiri',
-      );
-    }
-
-    return {
-      ...animalType,
-      ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
-    };
-  }
-
-  async checkCode(
-    userId: number,
-    code: string,
-  ): Promise<{ isAvailable: boolean }> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.animalType.count({
-      where: { farmId, code },
-    });
-
-    return { isAvailable: existing === 0 };
-  }
-
-  async create(userId: number, data: CreateAnimalType): Promise<AnimalType> {
-    const farmId = await this.farm.getFarmId(userId);
-    try {
-      const animalType = await this.prisma.animalType.create({
-        data: {
-          ...data,
-          farmId,
-        },
-      });
-      return {
-        ...animalType,
-        ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
-      };
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
-        throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
-        );
-      }
-      throw err;
-    }
-  }
-
-  async update(
-    userId: number,
-    id: number,
-    data: UpdateAnimalType,
-  ): Promise<AnimalType> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.animalType.findUnique({
-      where: { id },
-      select: { farmId: true },
-    });
-
-    if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
-    if (existing.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat mengubah jenis hewan dalam peternakan Anda sendiri',
-      );
-    }
-
-    try {
-      const updated = await this.prisma.animalType.update({
-        where: { id },
-        data,
-      });
-
-      return {
-        ...updated,
-        ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
-      };
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
-        throw new ConflictException(
-          `Kode ${data.code} sudah ada. Silakan gunakan kode lain`,
-        );
-      }
-      throw err;
-    }
-  }
-
-  async delete(userId: number, id: number): Promise<{ id: number }> {
-    try {
-      const farmId = await this.farm.getFarmId(userId);
-      const existing = await this.prisma.animalType.findUnique({
-        where: { id },
-        select: { farmId: true },
-      });
-
-      if (!existing) throw new NotFoundException('Data tidak ditemukan');
-      if (existing.farmId !== farmId) {
-        throw new ForbiddenException(
-          'Anda hanya dapat menghapus jenis hewan dalam peternakan Anda sendiri',
-        );
-      }
-
-      const deleted = await this.prisma.animalType.delete({
-        where: { id },
-        select: { id: true },
-      });
-      return deleted;
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2003'
-      ) {
-        throw new UnprocessableEntityException(
-          'Tidak dapat menghapus jenis ternak yang sudah digunakan',
-        );
-      }
-      throw err;
-    }
-  }
-
-  async getAllTemplates(
     data: GetAllAnimalType,
   ): Promise<{ animalTypes: AnimalType[] } & ApiPagination> {
     const animalTypes = await this.prisma.animalType.findMany({
       where: {
-        farmId: null,
         ...(data.q && {
           OR: [{ code: { contains: data.q } }, { label: { contains: data.q } }],
         }),
@@ -240,15 +63,12 @@ export class AnimalTypeService {
     };
   }
 
-  async getTemplateDetail(id: number): Promise<AnimalType> {
+  async getDetail(id: number): Promise<AnimalType> {
     const animalType = await this.prisma.animalType.findUnique({
       where: { id },
     });
 
     if (!animalType) throw new NotFoundException('Jenis hewan tidak ditemukan');
-    if (animalType.farmId !== null) {
-      throw new ForbiddenException('Anda hanya dapat melihat template sistem');
-    }
 
     return {
       ...animalType,
@@ -256,100 +76,72 @@ export class AnimalTypeService {
     };
   }
 
-  async checkTemplateCode(code: string): Promise<{ isAvailable: boolean }> {
+  async checkCode(code: string): Promise<{ isAvailable: boolean }> {
     const existing = await this.prisma.animalType.count({
-      where: { farmId: null, code },
+      where: { code },
     });
 
     return { isAvailable: existing === 0 };
   }
 
-  async createTemplate(data: CreateAnimalType): Promise<AnimalType> {
-    const isCodeAlreadyUse = await this.prisma.animalType.count({
-      where: { code: data.code, farmId: null },
-    });
-    if (isCodeAlreadyUse) {
-      throw new ConflictException(
-        `Kode ${data.code} sudah digunakan pada template sistem`,
-      );
-    }
-
-    const animalType = await this.prisma.animalType.create({
-      data: {
-        ...data,
-        farmId: null,
-      },
-    });
-
-    return {
-      ...animalType,
-      ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
-    };
-  }
-
-  async updateTemplate(
-    id: number,
-    data: UpdateAnimalType,
-  ): Promise<AnimalType> {
-    const existing = await this.prisma.animalType.findUnique({
-      where: { id },
-      select: { farmId: true, code: true },
-    });
-
-    if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
-    if (existing.farmId !== null) {
-      throw new ForbiddenException('Anda hanya dapat mengubah template sistem');
-    }
-
-    if (data.code && data.code !== existing.code) {
-      const isCodeAlreadyUse = await this.prisma.animalType.count({
-        where: { code: data.code, farmId: null },
-      });
-      if (isCodeAlreadyUse) {
-        throw new ConflictException(
-          `Kode ${data.code} sudah digunakan pada template sistem`,
-        );
-      }
-    }
-
-    const updated = await this.prisma.animalType.update({
-      where: { id },
-      data,
-    });
-
-    return {
-      ...updated,
-      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
-    };
-  }
-
-  async deleteTemplate(id: number): Promise<{ id: number }> {
+  async create(data: CreateAnimalType): Promise<AnimalType> {
     try {
-      const existing = await this.prisma.animalType.findUnique({
+      const animalType = await this.prisma.animalType.create({ data });
+
+      return {
+        ...animalType,
+        ...formatCreateAndUpdateAt(animalType.createdAt, animalType.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException(`Kode ${data.code} sudah digunakan`);
+      }
+      throw err;
+    }
+  }
+
+  async update(id: number, data: UpdateAnimalType): Promise<AnimalType> {
+    try {
+      const updated = await this.prisma.animalType.update({
         where: { id },
-        select: { farmId: true },
+        data,
       });
 
-      if (!existing) throw new NotFoundException('Jenis hewan tidak ditemukan');
-      if (existing.farmId !== null) {
-        throw new ForbiddenException(
-          'Anda hanya dapat menghapus template sistem',
-        );
+      return {
+        ...updated,
+        ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+      };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        if (err.code === 'P2002') {
+          throw new ConflictException(`Kode ${data.code} sudah digunakan`);
+        } else if (err.code === 'P2025') {
+          throw new NotFoundException('Jenis hewan tidak ditemukan');
+        }
       }
+      throw err;
+    }
+  }
 
+  async delete(id: number): Promise<{ id: number }> {
+    try {
       const deleted = await this.prisma.animalType.delete({
         where: { id },
         select: { id: true },
       });
       return deleted;
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2003'
-      ) {
-        throw new UnprocessableEntityException(
-          'Tidak dapat menghapus jenis ternak yang sudah digunakan',
-        );
+      if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        if (err.code === 'P2003') {
+          throw new UnprocessableEntityException(
+            'Tidak dapat menghapus jenis ternak yang sudah digunakan',
+          );
+        } else if (err.code === 'P2025') {
+          throw new NotFoundException('Jenis hewan tidak ditemukan');
+        }
       }
       throw err;
     }

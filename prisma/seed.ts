@@ -87,9 +87,6 @@ async function main() {
     { code: 'sapi', label: 'Sapi' },
     { code: 'kambing', label: 'Kambing' },
     { code: 'domba', label: 'Domba' },
-    { code: 'ayam', label: 'Ayam' },
-    { code: 'bebek', label: 'Bebek' },
-    { code: 'kelinci', label: 'Kelinci' },
   ];
 
   const conditionTypesData = [
@@ -122,39 +119,24 @@ async function main() {
 
   // Menggunakan createMany dengan skipDuplicates agar aman dijalankan berulang
   await prisma.animalType.createMany({
-    data: [
-      ...animalTypesData.map((d) => ({ ...d, farmId: null })),
-      ...animalTypesData.map((d) => ({ ...d, farmId: adminFarm.id })),
-    ],
+    data: animalTypesData,
     skipDuplicates: true,
   });
 
   await prisma.conditionType.createMany({
-    data: [
-      ...conditionTypesData.map((d) => ({ ...d, farmId: null })),
-      ...conditionTypesData.map((d) => ({ ...d, farmId: adminFarm.id })),
-    ],
+    data: conditionTypesData,
     skipDuplicates: true,
   });
 
   await prisma.vaccine.createMany({
-    data: [
-      ...vaccinesData.map((d) => ({ ...d, farmId: null })),
-      ...vaccinesData.map((d) => ({ ...d, farmId: adminFarm.id })),
-    ],
+    data: vaccinesData,
     skipDuplicates: true,
   });
 
   // Ambil referensi ID spesifik milik Farm Admin untuk merelasikan Livestocks
-  const farmAnimalTypes = await prisma.animalType.findMany({
-    where: { farmId: adminFarm.id },
-  });
-  const farmConditionTypes = await prisma.conditionType.findMany({
-    where: { farmId: adminFarm.id },
-  });
-  const farmVaccines = await prisma.vaccine.findMany({
-    where: { farmId: adminFarm.id },
-  });
+  const animalTypes = await prisma.animalType.findMany();
+  const conditionTypes = await prisma.conditionType.findMany();
+  const vaccines = await prisma.vaccine.findMany();
 
   // 4. Generate 50 Livestocks
   const livestockCount = await prisma.livestock.count({
@@ -178,7 +160,7 @@ async function main() {
     const endFounderDate = new Date(2023, 11, 31);
 
     for (let i = 1; i <= 45; i++) {
-      const animalType = getRandomElement(farmAnimalTypes);
+      const animalType = getRandomElement(animalTypes);
       const gender = getRandomElement(Object.values(Gender));
       const status = getRandomElement(Object.values(LivestockStatus));
       const birthDate = getRandomDate(startFounderDate, endFounderDate);
@@ -221,7 +203,7 @@ async function main() {
     }[] = [];
 
     // Cari tipe hewan apa saja yang memiliki setidaknya 1 jantan dan 1 betina dari data indukan
-    const validTypesForBreeding = farmAnimalTypes.filter((type) => {
+    const validTypesForBreeding = animalTypes.filter((type) => {
       const hasMale = insertedFounders.some(
         (f) => f.animalTypeId === type.id && f.gender === 'male',
       );
@@ -233,9 +215,7 @@ async function main() {
 
     // Fallback darurat jika probabilitas acak meleset (sangat jarang terjadi)
     const typesToUse =
-      validTypesForBreeding.length > 0
-        ? validTypesForBreeding
-        : farmAnimalTypes;
+      validTypesForBreeding.length > 0 ? validTypesForBreeding : animalTypes;
 
     for (let i = 46; i <= 50; i++) {
       // Pilih tipe hewan yang terjamin punya ayah dan ibu
@@ -345,7 +325,7 @@ async function main() {
       // Randomize 1-3 riwayat kondisi per ternak
       const numConditions = Math.floor(Math.random() * 3) + 1;
       for (let j = 0; j < numConditions; j++) {
-        const condition = getRandomElement(farmConditionTypes);
+        const condition = getRandomElement(conditionTypes);
         // Pastikan tanggal record logis (selalu setelah tanggal lahir ternak)
         const recordDate = getRandomDate(livestock.birthDate, new Date());
 
@@ -360,7 +340,7 @@ async function main() {
       // Randomize 0-2 riwayat vaksinasi per ternak
       const numVaccines = Math.floor(Math.random() * 3);
       for (let k = 0; k < numVaccines; k++) {
-        const vaccine = getRandomElement(farmVaccines);
+        const vaccine = getRandomElement(vaccines);
         const vaxDate = getRandomDate(livestock.birthDate, new Date());
 
         vaccinesToCreate.push({

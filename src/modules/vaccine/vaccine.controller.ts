@@ -10,14 +10,12 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { VaccineService } from './vaccine.service';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { VerifiedAccount } from '../auth/decorator/verified-account.decarator';
-import type { Request } from 'express';
-import { JwtPayload, ApiResponse, ApiPagination } from '../../types';
+import { Role } from '../auth/decorator/role.decarator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
 import { VaccineValidation } from './vaccine.validation';
 import type {
@@ -27,35 +25,21 @@ import type {
   UpdateVaccine,
 } from './vaccine.validation';
 import { Vaccine } from './vaccine.model';
+import { ApiPagination, ApiResponse } from '../../types';
 
 @Controller('vaccines')
-@UseGuards(AuthGuard)
-@VerifiedAccount()
 export class VaccineController {
   constructor(private readonly service: VaccineService) {}
 
-  @Get('templates')
-  @HttpCode(HttpStatus.OK)
-  async getAllTemplates(
-    @Query(new ZodValidationPipe(VaccineValidation.GET_ALL))
-    query: GetAllVaccine,
-  ): Promise<ApiResponse<{ vaccines: Vaccine[] } & ApiPagination>> {
-    const result = await this.service.getAllTemplates(query);
-    return {
-      message: 'Template vaksin berhasil diambil',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
-  }
-
   @Get('check-code')
-  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async checkCode(
-    @Req() req: Request & { user: JwtPayload },
     @Query(new ZodValidationPipe(VaccineValidation.CHECK_CODE))
     query: CheckCodeVaccine,
   ): Promise<ApiResponse<{ isAvailable: boolean }>> {
-    const result = await this.service.checkCode(req.user.sub, query.code);
+    const result = await this.service.checkCode(query.code);
     return {
       message: `Kode ${query.code} ${result.isAvailable ? 'belum' : 'sudah'} ada`,
       data: result,
@@ -65,15 +49,14 @@ export class VaccineController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAll(
-    @Req() req: Request & { user: JwtPayload },
+  async getAllTemplates(
     @Query(new ZodValidationPipe(VaccineValidation.GET_ALL))
     query: GetAllVaccine,
   ): Promise<ApiResponse<{ vaccines: Vaccine[] } & ApiPagination>> {
-    const data = await this.service.getAll(req.user.sub, query);
+    const result = await this.service.getAll(query);
     return {
-      message: 'Data vaksin berhasil diambil',
-      data,
+      message: 'Template vaksin berhasil diambil',
+      data: result,
       statusCode: HttpStatus.OK,
     };
   }
@@ -81,12 +64,11 @@ export class VaccineController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getDetail(
-    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<Vaccine>> {
-    const result = await this.service.getDetail(req.user.sub, id);
+    const result = await this.service.getDetail(id);
     return {
-      message: 'Detail vaksin berhasil diambil',
+      message: 'Detail template vaksin berhasil diambil',
       data: result,
       statusCode: HttpStatus.OK,
     };
@@ -94,14 +76,16 @@ export class VaccineController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async create(
-    @Req() req: Request & { user: JwtPayload },
     @Body(new ZodValidationPipe(VaccineValidation.CREATE))
     data: CreateVaccine,
   ): Promise<ApiResponse<Vaccine>> {
-    const result = await this.service.create(req.user.sub, data);
+    const result = await this.service.create(data);
     return {
-      message: 'Vaksin berhasil ditambahkan',
+      message: 'Template vaksin berhasil ditambahkan',
       data: result,
       statusCode: HttpStatus.CREATED,
     };
@@ -109,15 +93,17 @@ export class VaccineController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async update(
-    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
     @Body(new ZodValidationPipe(VaccineValidation.UPDATE))
     data: UpdateVaccine,
   ): Promise<ApiResponse<Vaccine>> {
-    const result = await this.service.update(req.user.sub, id, data);
+    const result = await this.service.update(id, data);
     return {
-      message: 'Vaksin berhasil diperbarui',
+      message: 'Template vaksin berhasil diperbarui',
       data: result,
       statusCode: HttpStatus.OK,
     };
@@ -125,13 +111,15 @@ export class VaccineController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @VerifiedAccount(true)
+  @Role('admin')
   async delete(
-    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<{ id: number }>> {
-    const result = await this.service.delete(req.user.sub, id);
+    const result = await this.service.delete(id);
     return {
-      message: 'Vaksin berhasil dihapus',
+      message: 'Template vaksin berhasil dihapus',
       data: result,
       statusCode: HttpStatus.OK,
     };

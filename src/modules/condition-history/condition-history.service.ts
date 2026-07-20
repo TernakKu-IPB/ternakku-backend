@@ -1,10 +1,5 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
-import { FarmService } from '../../common/farm.service';
 import { ModelPaginationService } from '../../common/model-pagination.service';
 import { formatCreateAndUpdateAt } from '../../utils/date-formatter';
 import dayjs from 'dayjs';
@@ -17,7 +12,8 @@ import type {
 } from './condition-history.validation';
 import { ApiPagination } from '../../types';
 import { LivestockService } from '../../common/livestock.service';
-import { ConditionTypeService } from '../../common/condition-type.service';
+import { FarmService } from '../../common/farm.service';
+import { Prisma } from '../../generated/prisma/client';
 
 dayjs.extend(utc);
 
@@ -28,7 +24,6 @@ export class ConditionHistoryService {
     private farm: FarmService,
     private modelPagination: ModelPaginationService,
     private livestock: LivestockService,
-    private condition: ConditionTypeService,
   ) {}
 
   async getAll(
@@ -106,21 +101,11 @@ export class ConditionHistoryService {
   async getDetail(userId: number, id: number): Promise<ConditionHistory> {
     const farmId = await this.farm.getFarmId(userId);
     const history = await this.prisma.conditionHistory.findUnique({
-      where: { id },
-      include: {
-        livestock: {
-          select: { farmId: true },
-        },
-      },
+      where: { id, livestock: { farmId } },
     });
 
     if (!history)
       throw new NotFoundException('Riwayat kondisi ternak tidak ditemukan');
-    if (history.livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat melihat kondisi ternak dalam peternakan Anda sendiri',
-      );
-    }
 
     return {
       ...history,
@@ -133,23 +118,30 @@ export class ConditionHistoryService {
     userId: number,
     data: CreateConditionHistory,
   ): Promise<ConditionHistory> {
-    const farmId = await this.farm.getFarmId(userId);
+    try {
+      await this.livestock.checkAvailability(data.livestockId, userId);
 
-    await this.livestock.checkAvailability(data.livestockId, farmId);
-    await this.condition.checkAvailability(data.conditionTypeId, farmId);
+      const history = await this.prisma.conditionHistory.create({
+        data: {
+          ...data,
+          recordDate: dayjs.utc(data.recordDate).toISOString(),
+        },
+      });
 
-    const history = await this.prisma.conditionHistory.create({
-      data: {
-        ...data,
-        recordDate: dayjs.utc(data.recordDate).toISOString(),
-      },
-    });
-
-    return {
-      ...history,
-      recordDate: dayjs.utc(history.recordDate).format('YYYY-MM-DD'),
-      ...formatCreateAndUpdateAt(history.createdAt, history.updatedAt),
-    };
+      return {
+        ...history,
+        recordDate: dayjs.utc(history.recordDate).format('YYYY-MM-DD'),
+        ...formatCreateAndUpdateAt(history.createdAt, history.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new NotFoundException('Jenis kondisi tidak ditemukan');
+      }
+      throw err;
+    }
   }
 
   async update(
@@ -157,78 +149,69 @@ export class ConditionHistoryService {
     id: number,
     data: UpdateConditionHistory,
   ): Promise<ConditionHistory> {
-    const farmId = await this.farm.getFarmId(userId);
+    try {
+      const farmId = await this.farm.getFarmId(userId);
 
-    const existing = await this.prisma.conditionHistory.findUnique({
-      where: { id },
-      select: {
-        conditionTypeId: true,
-        livestockId: true,
-        livestock: {
-          select: { farmId: true },
+      const existing = await this.prisma.conditionHistory.findUnique({
+        where: { id, livestock: { farmId } },
+        select: {
+          conditionTypeId: true,
+          livestockId: true,
+          livestock: {
+            select: { farmId: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!existing)
-      throw new NotFoundException('Riwayat kondisi ternak tidak ditemukan');
-    if (existing.livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat mengubah kondisi ternak dalam peternakan Anda sendiri',
-      );
+      if (!existing)
+        throw new NotFoundException('Riwayat kondisi ternak tidak ditemukan');
+
+      if (data.livestockId && data.livestockId !== existing.livestockId) {
+        await this.livestock.checkAvailability(data.livestockId, userId);
+      }
+
+      const updated = await this.prisma.conditionHistory.update({
+        where: { id },
+        data: {
+          ...data,
+          ...(data.recordDate && {
+            recordDate: dayjs.utc(data.recordDate).toISOString(),
+          }),
+        },
+      });
+
+      return {
+        ...updated,
+        recordDate: dayjs.utc(updated.recordDate).format('YYYY-MM-DD'),
+        ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2003'
+      ) {
+        throw new NotFoundException('Jenis kondisi tidak ditemukan');
+      }
+      throw err;
     }
-
-    if (data.livestockId && data.livestockId !== existing.livestockId) {
-      await this.livestock.checkAvailability(data.livestockId, farmId);
-    }
-
-    if (
-      data.conditionTypeId &&
-      data.conditionTypeId !== existing.conditionTypeId
-    ) {
-      await this.condition.checkAvailability(data.conditionTypeId, farmId);
-    }
-
-    const updated = await this.prisma.conditionHistory.update({
-      where: { id },
-      data: {
-        ...data,
-        ...(data.recordDate && {
-          recordDate: dayjs.utc(data.recordDate).toISOString(),
-        }),
-      },
-    });
-
-    return {
-      ...updated,
-      recordDate: dayjs.utc(updated.recordDate).format('YYYY-MM-DD'),
-      ...formatCreateAndUpdateAt(updated.createdAt, updated.updatedAt),
-    };
   }
 
   async delete(userId: number, id: number): Promise<{ id: number }> {
-    const farmId = await this.farm.getFarmId(userId);
-    const existing = await this.prisma.conditionHistory.findUnique({
-      where: { id },
-      select: {
-        livestock: {
-          select: { farmId: true },
-        },
-      },
-    });
-
-    if (!existing)
-      throw new NotFoundException('Riwayat kondisi ternak tidak ditemukan');
-    if (existing.livestock.farmId !== farmId) {
-      throw new ForbiddenException(
-        'Anda hanya dapat menghapus kondisi ternak dalam peternakan Anda sendiri',
-      );
+    try {
+      const farmId = await this.farm.getFarmId(userId);
+      const deleted = await this.prisma.conditionHistory.delete({
+        where: { id, livestock: { farmId } },
+        select: { id: true },
+      });
+      return deleted;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2025'
+      ) {
+        throw new NotFoundException('Riwayat kondisi ternak tidak ditemukan');
+      }
+      throw err;
     }
-
-    const deleted = await this.prisma.conditionHistory.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return deleted;
   }
 }
