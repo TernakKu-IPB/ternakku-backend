@@ -37,7 +37,7 @@ export class VaccineService {
       skip: data.offset,
     });
 
-    const endpoint = '/vaccines/templates';
+    const endpoint = '/vaccines';
     const params = new URLSearchParams();
     if (data.q) params.set('q', data.q);
 

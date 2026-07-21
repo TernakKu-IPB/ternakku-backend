@@ -50,7 +50,7 @@ export class AnimalTypeController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAllTemplates(
+  async getAll(
     @Query(new ZodValidationPipe(AnimalTypeValidation.GET_ALL))
     query: GetAllAnimalType,
   ): Promise<ApiResponse<{ animalTypes: AnimalType[] } & ApiPagination>> {

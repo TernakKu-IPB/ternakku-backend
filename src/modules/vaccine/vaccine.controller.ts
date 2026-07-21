@@ -49,7 +49,7 @@ export class VaccineController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAllTemplates(
+  async getAll(
     @Query(new ZodValidationPipe(VaccineValidation.GET_ALL))
     query: GetAllVaccine,
   ): Promise<ApiResponse<{ vaccines: Vaccine[] } & ApiPagination>> {

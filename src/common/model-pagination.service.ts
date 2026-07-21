@@ -14,7 +14,10 @@ export class ModelPaginationService {
     params?: URLSearchParams,
   ): ApiPagination & { hasNextPage: boolean; hasPrevPage: boolean } {
     const port = this.config.get<number>('PORT', 3000);
-    const baseUrl = this.config.get<string>('BASE_URL', 'http://localhost');
+    const baseUrl = this.config.get<string>(
+      'BASE_URL',
+      `http://localhost:${port}`,
+    );
     const hasPrevPage = offset !== 0;
     const hasNextPage = dataLength > limit;
 
@@ -24,12 +27,12 @@ export class ModelPaginationService {
     if (hasPrevPage) {
       urlParams.set('limit', limit.toString());
       urlParams.set('offset', (offset - limit).toString());
-      prev = `${baseUrl}:${port}${endpoint}?${urlParams}`;
+      prev = `${baseUrl}${endpoint}?${urlParams}`;
     }
     if (hasNextPage) {
       urlParams.set('limit', limit.toString());
       urlParams.set('offset', (offset + limit).toString());
-      next = `${baseUrl}:${port}${endpoint}?${urlParams}`;
+      next = `${baseUrl}${endpoint}?${urlParams}`;
     }
 
     const paging =

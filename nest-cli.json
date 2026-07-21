@@ -12,6 +12,10 @@
       {
         "include": "../templates/**/*",
         "outDir": "dist/templates"
+      },
+      {
+        "include": "../public/**/*",
+        "outDir": "dist/public"
       }
     ]
   }

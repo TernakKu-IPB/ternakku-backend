@@ -37,7 +37,7 @@ export class ConditionTypeService {
       skip: data.offset,
     });
 
-    const endpoint = '/condition-types/templates';
+    const endpoint = '/condition-types';
     const params = new URLSearchParams();
     if (data.q) params.set('q', data.q);
 

@@ -50,7 +50,7 @@ export class ConditionTypeController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAllTemplates(
+  async getAll(
     @Query(new ZodValidationPipe(ConditionTypeValidation.GET_ALL))
     query: GetAllConditionType,
   ): Promise<ApiResponse<{ conditionTypes: ConditionType[] } & ApiPagination>> {

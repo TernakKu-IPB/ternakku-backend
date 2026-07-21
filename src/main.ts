@@ -17,7 +17,10 @@ async function bootstrap() {
     'NODE_ENV',
     'development',
   );
-  const baseUrl = configService.get<string>('BASE_URL', 'http://localhost');
+  const baseUrl = configService.get<string>(
+    'BASE_URL',
+    `http://localhost:${port}`,
+  );
 
   // Logger - Winston
   const loggerService = app.get<LoggerService>(WINSTON_MODULE_NEST_PROVIDER);
@@ -37,7 +40,7 @@ async function bootstrap() {
   // Listen server
   await app.listen(port, () => {
     loggerService.log(
-      `Server running in ${environment} mode at ${baseUrl}:${port}`,
+      `Server running in ${environment} mode on port ${port}. Public URL: ${baseUrl}`,
     );
   });
 }

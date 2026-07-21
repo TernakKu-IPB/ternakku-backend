@@ -10,6 +10,8 @@ import { VaccineModule } from './modules/vaccine/vaccine.module';
 import { LivestockModule } from './modules/livestock/livestock.module';
 import { ConditionHistoryModule } from './modules/condition-history/condition-history.module';
 import { VaccinationHistoryModule } from './modules/vaccination-history/vaccination-history.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -23,6 +25,9 @@ import { VaccinationHistoryModule } from './modules/vaccination-history/vaccinat
     LivestockModule,
     ConditionHistoryModule,
     VaccinationHistoryModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+    }),
   ],
   controllers: [AppController],
 })

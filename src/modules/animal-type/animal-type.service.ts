@@ -37,7 +37,7 @@ export class AnimalTypeService {
       skip: data.offset,
     });
 
-    const endpoint = '/animal-types/templates';
+    const endpoint = '/animal-types';
     const params = new URLSearchParams();
     if (data.q) params.set('q', data.q);
 
