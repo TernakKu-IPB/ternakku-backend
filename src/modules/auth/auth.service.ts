@@ -280,11 +280,7 @@ export class AuthService {
       'CLIENT_URL',
       'http://localhost:5173',
     );
-    const environment = this.config.get<'production' | 'development'>(
-      'NODE_ENV',
-      'development',
-    );
-    const resetPasswordLink = `${clientUrl}/auth/${environment === 'production' ? 'forgot-password' : 'redirect-app'}?token=${token}`;
+    const resetPasswordLink = `${clientUrl}/auth/redirect-app?token=${token}`;
 
     await this.mail.sendEmail({
       to: user.email,
