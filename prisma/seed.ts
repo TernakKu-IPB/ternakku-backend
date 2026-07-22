@@ -39,6 +39,55 @@ function getRandomElement<T>(arr: T[]): T {
 async function main() {
   console.log('🌱 Memulai proses seeding data...');
 
+  // 0. Setup 20 User Dummy untuk Testing
+  // Mengecek apakah user dummy sudah pernah dibuat (menggunakan pola username)
+  const dummyUserCount = await prisma.user.count({
+    where: { username: { startsWith: 'testuser' } },
+  });
+
+  if (dummyUserCount < 20) {
+    // Hash password satu kali saja untuk menghemat resource CPU
+    const dummyPasswordHash = await bcrypt.hash('user123!', 10);
+    const dummyUsersToCreate: {
+      username: string;
+      email: string;
+      password: string;
+      fullName: string;
+      otpCode: string;
+      otpExpiration: Date;
+      isVerified: boolean;
+    }[] = [];
+
+    // Gunakan OTP expiration yang sama untuk semua
+    const dummyOtpExpiration = new Date();
+    dummyOtpExpiration.setHours(dummyOtpExpiration.getHours() + 1);
+
+    for (let i = 1; i <= 20; i++) {
+      dummyUsersToCreate.push({
+        username: `testuser${i}`,
+        email: `testuser${i}@farm.local`,
+        password: dummyPasswordHash,
+        fullName: `Pengguna Test ${i}`,
+        otpCode: '123456',
+        otpExpiration: dummyOtpExpiration,
+        isVerified: true,
+      });
+    }
+
+    await prisma.user.createMany({
+      data: dummyUsersToCreate,
+      skipDuplicates: true,
+    });
+
+    console.log(
+      `✅ Berhasil menyisipkan 20 user dummy (testuser1 - testuser20).`,
+    );
+  } else {
+    console.log(
+      `ℹ️ Akun user dummy sudah ada (${dummyUserCount} records). Skip pembuatan user dummy.`,
+    );
+  }
+
   // 1. Setup User Admin
   const adminUsername = process.env.ADMIN_USERNAME || 'admin';
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@farm.local';
